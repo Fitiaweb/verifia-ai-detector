@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.venv/
+var/
+sdist/
+var/
+wheels/
+*.egg-info/
+.eggs/
+
+# Database
+app.db
+
+# Environments
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
