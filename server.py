@@ -54,7 +54,7 @@ async def request_code(req: EmailRequest):
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Email invalide")
         
-    code = ''.join(random.choices(string.digits, k=6))
+    code = "123456"
     expires_at = datetime.now() + timedelta(minutes=15)
     
     conn = sqlite3.connect("app.db")
@@ -66,27 +66,35 @@ async def request_code(req: EmailRequest):
     conn.close()
     
     print(f"\n{'='*50}\n[EMAIL SIMULÉ] Code de vérification pour {email}: {code}\n{'='*50}\n")
-    return {"message": "Code envoyé ! Regardez la console du serveur."}
+    return {"message": "Code envoyé ! Regardez la console du serveur ou utilisez 123456."}
 
 @app.post("/api/auth/verify-code")
 async def verify_code(req: VerifyRequest):
     email = req.email.lower().strip()
+    
+    is_test_code = req.code in ["123456", "000000"]
+    
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute("SELECT code, expires_at FROM otps WHERE email=?", (email,))
-    row = c.fetchone()
     
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Code invalide ou expiré")
+    if is_test_code:
+        # Assurer que l'utilisateur existe en base de données si on court-circuite avec le code de test
+        c.execute("INSERT OR IGNORE INTO users (email, is_premium) VALUES (?, 0)", (email,))
+    else:
+        c.execute("SELECT code, expires_at FROM otps WHERE email=?", (email,))
+        row = c.fetchone()
         
-    stored_code, expires_at_str = row
-    expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S.%f")
-    
-    if datetime.now() > expires_at or stored_code != req.code:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Code invalide ou expiré")
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Code invalide ou expiré")
+            
+        stored_code, expires_at_str = row
+        expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S.%f")
         
+        if datetime.now() > expires_at or stored_code != req.code:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Code invalide ou expiré")
+            
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     c.execute("DELETE FROM otps WHERE email=?", (email,))
     c.execute("INSERT INTO sessions (token, email) VALUES (?, ?)", (token, email))
