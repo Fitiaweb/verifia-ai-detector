@@ -8,6 +8,9 @@ import random
 import string
 from datetime import datetime, timedelta
 from typing import Optional
+import stripe
+
+stripe.api_key = os.getenv("STRIPE_API_KEY", None)
 
 app = FastAPI(title="VerifIA Backend")
 
@@ -135,17 +138,14 @@ async def upgrade_account(Authorization: Optional[str] = Header(None)):
     return {"message": "Compte passé en Premium avec succès !", "is_premium": True}
 
 # ==========================================
-# CONFIGURATION ET ENDPOINTS PAIEMENT REVOLUT
+# CONFIGURATION ET ENDPOINTS PAIEMENT STRIPE
 # ==========================================
-
-REVOLUT_MERCHANT_TOKEN = os.getenv("REVOLUT_MERCHANT_TOKEN", None)
-REVOLUT_SANDBOX = os.getenv("REVOLUT_SANDBOX", "True").lower() == "true"
 
 class PaymentSessionRequest(BaseModel):
     plan: str
 
 @app.post("/api/payments/create-session")
-async def create_payment_session(req: PaymentSessionRequest, Authorization: Optional[str] = Header(None)):
+async def create_payment_session(req: PaymentSessionRequest, request: Request, Authorization: Optional[str] = Header(None)):
     if not Authorization or not Authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Non autorisé")
     token = Authorization.split(" ")[1]
@@ -160,69 +160,55 @@ async def create_payment_session(req: PaymentSessionRequest, Authorization: Opti
         
     # Tarification attractive (en centimes EUR)
     price_cents = 499 if plan == "monthly" else 2999
-    order_id = "ord_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
+    plan_name = "VerifIA - Abonnement Mensuel Pro" if plan == "monthly" else "VerifIA - Abonnement Annuel Pro"
     
-    # Si le jeton Revolut est fourni, on tente une intégration de production / sandbox
-    if REVOLUT_MERCHANT_TOKEN and REVOLUT_MERCHANT_TOKEN != "mock":
-        import urllib.request
-        import json
+    # Déterminer l'URL de redirection de façon dynamique
+    origin = str(request.base_url).rstrip('/')
+    # Forcer HTTPS pour la production Render afin d'assurer la sécurité du paiement
+    if "localhost" not in origin and "127.0.0.1" not in origin:
+        origin = origin.replace("http://", "https://")
         
-        base_url = "https://sandbox-merchant.revolut.com/api/1.0" if REVOLUT_SANDBOX else "https://merchant.revolut.com/api/1.0"
-        payload = {
-            "amount": price_cents,
-            "currency": "EUR",
-            "customer": {
-                "email": email
-            },
-            "merchant_order_ext_ref": order_id,
-            "redirect_url": f"http://localhost:8000/api/payments/confirm?email={email}&plan={plan}&order_id={order_id}"
-        }
-        
-        req_api = urllib.request.Request(
-            f"{base_url}/orders",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {REVOLUT_MERCHANT_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            method="POST"
-        )
+    # Si la clé Stripe est fournie, on crée une session Stripe Checkout officielle
+    if stripe.api_key and stripe.api_key != "mock":
         try:
-            # Effectuer l'appel avec un timeout de 8 secondes
-            with urllib.request.urlopen(req_api, timeout=8) as response:
-                resp_data = json.loads(response.read().decode())
-                checkout_url = resp_data.get("checkout_url")
-                if checkout_url:
-                    return {"checkout_url": checkout_url}
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'eur',
+                        'product_data': {
+                            'name': plan_name,
+                        },
+                        'unit_amount': price_cents,
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                customer_email=email,
+                success_url=f"{origin}/api/payments/confirm?email={email}&plan={plan}&session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=f"{origin}/#pricing",
+            )
+            return {"checkout_url": session.url}
         except Exception as e:
-            print(f"\n[REVOLUT API ERROR] Impossible d'appeler l'API Marchand: {e}. Fallback vers Simulation.\n")
+            print(f"\n[STRIPE API ERROR] Impossible de créer la session Stripe Checkout: {e}. Fallback vers Simulation.\n")
             
     # Mode simulation (magnifique interface locale interactive)
+    order_id = "ord_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
     sim_url = f"/checkout-simulation.html?plan={plan}&email={email}&session_id={order_id}"
     return {"checkout_url": sim_url}
 
 @app.get("/api/payments/confirm")
-async def confirm_payment(email: str, plan: str, order_id: str):
+async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None, session_id: Optional[str] = None):
     email = email.lower().strip()
     
-    # Vérification réelle auprès de Revolut si configuré
-    if REVOLUT_MERCHANT_TOKEN and REVOLUT_MERCHANT_TOKEN != "mock":
-        import urllib.request
-        import json
-        
-        base_url = "https://sandbox-merchant.revolut.com/api/1.0" if REVOLUT_SANDBOX else "https://merchant.revolut.com/api/1.0"
-        req_api = urllib.request.Request(
-            f"{base_url}/orders/{order_id}",
-            headers={"Authorization": f"Bearer {REVOLUT_MERCHANT_TOKEN}"}
-        )
+    # Vérification réelle auprès de Stripe si configuré
+    if stripe.api_key and stripe.api_key != "mock" and session_id:
         try:
-            with urllib.request.urlopen(req_api, timeout=8) as response:
-                order_data = json.loads(response.read().decode())
-                # Validation du paiement complété
-                if order_data.get("state") not in ["completed", "active"]:
-                    raise HTTPException(status_code=400, detail="Transaction non complétée.")
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status != "paid":
+                raise HTTPException(status_code=400, detail="Transaction Stripe non finalisée.")
         except Exception as e:
-            print(f"[REVOLUT CONFIRM WARNING] Erreur validation Revolut: {e}. Validation locale autorisée.")
+            print(f"[STRIPE CONFIRM WARNING] Erreur validation Stripe: {e}. Validation locale autorisée.")
             
     # Surclassement de l'utilisateur dans la base SQLite SQLite3
     conn = sqlite3.connect("app.db")
