@@ -17,8 +17,24 @@ app = FastAPI(title="VerifIA Backend")
 def init_db():
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, is_premium INTEGER)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS otps (email TEXT, code TEXT, expires_at TIMESTAMP)''')
+    
+    # Vérifier si la table users existe et nécessite une mise à jour
+    c.execute("PRAGMA table_info(users)")
+    columns = [col[1] for col in c.fetchall()]
+    
+    if columns and "password_hash" not in columns:
+        print("[DB] Ancienne structure de table users détectée. Mise à jour de la base de données...")
+        c.execute("DROP TABLE IF EXISTS users")
+        c.execute("DROP TABLE IF EXISTS sessions")
+        
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        email TEXT PRIMARY KEY, 
+        password_hash TEXT,
+        first_name TEXT,
+        last_name TEXT,
+        birth_date TEXT,
+        is_premium INTEGER DEFAULT 0
+    )''')
     c.execute('''CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, email TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS usage (ip TEXT PRIMARY KEY, count INTEGER)''')
     conn.commit()
@@ -26,15 +42,40 @@ def init_db():
 
 init_db()
 
+import hashlib
+import secrets
+import re
+
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    pwd_bytes = password.encode('utf-8')
+    salt_bytes = salt.encode('utf-8')
+    pbkdf2_hash = hashlib.pbkdf2_hmac('sha256', pwd_bytes, salt_bytes, 100000)
+    return f"{salt}:{pbkdf2_hash.hex()}"
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    try:
+        salt, hash_val = stored_hash.split(':')
+        pwd_bytes = password.encode('utf-8')
+        salt_bytes = salt.encode('utf-8')
+        pbkdf2_hash = hashlib.pbkdf2_hmac('sha256', pwd_bytes, salt_bytes, 100000)
+        return pbkdf2_hash.hex() == hash_val
+    except Exception:
+        return False
+
 class TextRequest(BaseModel):
     text: str
 
-class EmailRequest(BaseModel):
+class RegisterRequest(BaseModel):
+    first_name: str
+    last_name: str
+    birth_date: str
     email: str
+    password: str
 
-class VerifyRequest(BaseModel):
+class LoginRequest(BaseModel):
     email: str
-    code: str
+    password: str
 
 def get_user_by_token(token: str):
     if not token: return None
@@ -46,70 +87,102 @@ def get_user_by_token(token: str):
         conn.close()
         return None
     email = row[0]
-    c.execute("SELECT is_premium FROM users WHERE email=?", (email,))
+    c.execute("SELECT first_name, last_name, birth_date, is_premium FROM users WHERE email=?", (email,))
     user_row = c.fetchone()
     conn.close()
-    return {"email": email, "is_premium": bool(user_row[0]) if user_row else False}
+    if not user_row:
+        return None
+    return {
+        "email": email, 
+        "first_name": user_row[0],
+        "last_name": user_row[1],
+        "birth_date": user_row[2],
+        "is_premium": bool(user_row[3])
+    }
 
-@app.post("/api/auth/request-code")
-async def request_code(req: EmailRequest):
+@app.post("/api/auth/register")
+async def register_user(req: RegisterRequest):
     email = req.email.lower().strip()
+    first_name = req.first_name.strip()
+    last_name = req.last_name.strip()
+    birth_date = req.birth_date.strip()
+    password = req.password
+    
     if not email or "@" not in email:
-        raise HTTPException(status_code=400, detail="Email invalide")
+        raise HTTPException(status_code=400, detail="Adresse e-mail invalide.")
+    if not first_name or not last_name:
+        raise HTTPException(status_code=400, detail="Le nom et le prénom sont requis.")
+    if not birth_date:
+        raise HTTPException(status_code=400, detail="La date de naissance est requise.")
         
-    code = "123456"
-    expires_at = datetime.now() + timedelta(minutes=15)
-    
-    conn = sqlite3.connect("app.db")
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO users (email, is_premium) VALUES (?, 0)", (email,))
-    c.execute("DELETE FROM otps WHERE email=?", (email,))
-    c.execute("INSERT INTO otps (email, code, expires_at) VALUES (?, ?, ?)", (email, code, expires_at))
-    conn.commit()
-    conn.close()
-    
-    print(f"\n{'='*50}\n[EMAIL SIMULÉ] Code de vérification pour {email}: {code}\n{'='*50}\n")
-    return {"message": "Code envoyé ! Regardez la console du serveur ou utilisez 123456."}
-
-@app.post("/api/auth/verify-code")
-async def verify_code(req: VerifyRequest):
-    email = req.email.lower().strip()
-    
-    is_test_code = req.code in ["123456", "000000"]
-    
+    # Vérification de la force du mot de passe
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins 8 caractères.")
+    if not re.search(r"[A-Z]", password):
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins une lettre majuscule.")
+    if not re.search(r"[a-z]", password):
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins une lettre minuscule.")
+    if not re.search(r"\d", password):
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins un chiffre.")
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins un caractère spécial.")
+        
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
     
-    if is_test_code:
-        # Assurer que l'utilisateur existe en base de données si on court-circuite avec le code de test
-        c.execute("INSERT OR IGNORE INTO users (email, is_premium) VALUES (?, 0)", (email,))
-    else:
-        c.execute("SELECT code, expires_at FROM otps WHERE email=?", (email,))
-        row = c.fetchone()
+    c.execute("SELECT email FROM users WHERE email=?", (email,))
+    if c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Cet e-mail est déjà utilisé.")
         
-        if not row:
-            conn.close()
-            raise HTTPException(status_code=400, detail="Code invalide ou expiré")
-            
-        stored_code, expires_at_str = row
-        expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S.%f")
-        
-        if datetime.now() > expires_at or stored_code != req.code:
-            conn.close()
-            raise HTTPException(status_code=400, detail="Code invalide ou expiré")
-            
+    password_hash = hash_password(password)
+    
+    c.execute(
+        "INSERT INTO users (email, password_hash, first_name, last_name, birth_date, is_premium) VALUES (?, ?, ?, ?, ?, 0)",
+        (email, password_hash, first_name, last_name, birth_date)
+    )
+    
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
-    c.execute("DELETE FROM otps WHERE email=?", (email,))
     c.execute("INSERT INTO sessions (token, email) VALUES (?, ?)", (token, email))
     
-    c.execute("SELECT is_premium FROM users WHERE email=?", (email,))
-    user_row = c.fetchone()
-    is_premium = bool(user_row[0]) if user_row else False
+    conn.commit()
+    conn.close()
+    
+    return {"token": token, "email": email, "first_name": first_name, "last_name": last_name, "birth_date": birth_date, "is_premium": False}
+
+@app.post("/api/auth/login")
+async def login_user(req: LoginRequest):
+    email = req.email.lower().strip()
+    password = req.password
+    
+    conn = sqlite3.connect("app.db")
+    c = conn.cursor()
+    c.execute("SELECT password_hash, first_name, last_name, birth_date, is_premium FROM users WHERE email=?", (email,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Adresse e-mail ou mot de passe incorrect.")
+        
+    stored_hash, first_name, last_name, birth_date, is_premium = row
+    if not verify_password(password, stored_hash):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Adresse e-mail ou mot de passe incorrect.")
+        
+    token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    c.execute("INSERT INTO sessions (token, email) VALUES (?, ?)", (token, email))
     
     conn.commit()
     conn.close()
     
-    return {"token": token, "email": email, "is_premium": is_premium}
+    return {
+        "token": token, 
+        "email": email, 
+        "first_name": first_name, 
+        "last_name": last_name, 
+        "birth_date": birth_date, 
+        "is_premium": bool(is_premium)
+    }
 
 @app.get("/api/auth/profile")
 async def get_profile(Authorization: Optional[str] = Header(None)):

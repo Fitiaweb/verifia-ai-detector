@@ -155,29 +155,98 @@
     </main>
 
     <!-- Modales -->
+    <!-- Modales -->
     <div id="modalOverlay" class="modal-overlay hidden">
-        <!-- Auth Modal -->
-        <div id="authModal" class="modal-card hidden">
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal-card hidden">
             <div class="modal-header">
                 <h2>Connexion</h2>
                 <button class="close-modal"><i data-lucide="x"></i></button>
             </div>
-            <p>Saisissez votre e-mail pour recevoir un code de connexion.</p>
-            <input type="email" id="emailInput" placeholder="votre@email.com" class="modal-input">
-            <button id="sendCodeBtn" class="btn-primary" style="margin-top: 15px; width: 100%;">Recevoir le code</button>
-            <p id="authError" class="error-text hidden"></p>
+            <p>Se connecter à votre compte VerifIA.</p>
+            <input type="email" id="loginEmail" placeholder="votre@email.com" class="modal-input" style="margin-top: 15px;">
+            <input type="password" id="loginPassword" placeholder="Votre mot de passe" class="modal-input" style="margin-top: 10px;">
+            <button id="loginSubmitBtn" class="btn-primary" style="margin-top: 20px; width: 100%;">Se connecter</button>
+            <p id="loginError" class="error-text hidden"></p>
+            <p style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+                Pas encore de compte ? <a href="#" id="toRegisterLink" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">S'inscrire</a>
+            </p>
         </div>
 
-        <!-- Verify Modal -->
-        <div id="verifyModal" class="modal-card hidden">
+        <!-- Register Modal -->
+        <div id="registerModal" class="modal-card hidden">
             <div class="modal-header">
-                <h2>Vérification</h2>
+                <h2>Créer un compte</h2>
                 <button class="close-modal"><i data-lucide="x"></i></button>
             </div>
-            <p>Entrez le code à 6 chiffres reçu.</p>
-            <input type="text" id="codeInput" placeholder="123456" class="modal-input" maxlength="6">
-            <button id="verifyCodeBtn" class="btn-primary" style="margin-top: 15px; width: 100%;">Vérifier</button>
-            <p id="verifyError" class="error-text hidden"></p>
+            <div class="modal-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                <input type="text" id="regFirstName" placeholder="Prénom" class="modal-input" style="margin-top: 0;">
+                <input type="text" id="regLastName" placeholder="Nom" class="modal-input" style="margin-top: 0;">
+            </div>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                <label for="regBirthDate" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; padding-left: 5px;">Date de naissance</label>
+                <input type="date" id="regBirthDate" class="modal-input" style="margin-top: 0;">
+            </div>
+            <input type="email" id="regEmail" placeholder="votre@email.com" class="modal-input" style="margin-top: 10px;">
+            <input type="password" id="regPassword" placeholder="Mot de passe sécurisé" class="modal-input" style="margin-top: 10px;">
+            
+            <!-- Indicateur de force du mot de passe -->
+            <div class="password-strength-container" style="margin-top: 8px; width: 100%;">
+                <div class="strength-bar-bg" style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden;">
+                    <div id="strengthBar" style="width: 0%; height: 100%; background: var(--danger); transition: width 0.3s ease, background-color 0.3s ease;"></div>
+                </div>
+                <span id="strengthText" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; display: inline-block;">Mot de passe trop court</span>
+            </div>
+
+            <button id="registerSubmitBtn" class="btn-primary" style="margin-top: 20px; width: 100%;">S'inscrire</button>
+            <p id="registerError" class="error-text hidden"></p>
+            <p style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+                Déjà inscrit ? <a href="#" id="toLoginLink" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">Se connecter</a>
+            </p>
+        </div>
+
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal-card hidden">
+            <div class="modal-header">
+                <h2>Mon Compte</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="profile-details" style="display: flex; flex-direction: column; gap: 15px; margin: 15px 0;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+                    <i data-lucide="user" style="color: var(--accent-primary);"></i>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Identité</div>
+                        <div style="font-weight: 600;" id="profFullName">-</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+                    <i data-lucide="calendar" style="color: var(--accent-primary);"></i>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Date de naissance</div>
+                        <div style="font-weight: 600;" id="profBirthDate">-</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+                    <i data-lucide="mail" style="color: var(--accent-primary);"></i>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Adresse e-mail</div>
+                        <div style="font-weight: 600;" id="profEmail">-</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+                    <i data-lucide="sparkles" style="color: #ffd700;"></i>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Type de compte</div>
+                        <div style="font-weight: 600; display: flex; align-items: center; gap: 8px;" id="profPlan">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="logoutBtn" class="btn-secondary" style="border-color: var(--danger); color: var(--danger); font-weight: bold; margin-top: 15px; width: 100%;">Se déconnecter</button>
         </div>
 
         <!-- Paywall Modal -->

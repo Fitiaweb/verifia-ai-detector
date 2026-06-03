@@ -149,35 +149,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modal & Auth Logic
     const modalOverlay = document.getElementById('modalOverlay');
-    const authModal = document.getElementById('authModal');
-    const verifyModal = document.getElementById('verifyModal');
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+    const profileModal = document.getElementById('profileModal');
     const paywallModal = document.getElementById('paywallModal');
     
     const loginBtnNav = document.getElementById('loginBtnNav');
     const paywallLoginBtn = document.getElementById('paywallLoginBtn');
     
-    // Auth elements
-    const emailInput = document.getElementById('emailInput');
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
-    const authError = document.getElementById('authError');
+    // Switch links
+    const toRegisterLink = document.getElementById('toRegisterLink');
+    const toLoginLink = document.getElementById('toLoginLink');
     
-    const codeInput = document.getElementById('codeInput');
-    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
-    const verifyError = document.getElementById('verifyError');
+    // Login form elements
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    const loginError = document.getElementById('loginError');
+    
+    // Register form elements
+    const regFirstName = document.getElementById('regFirstName');
+    const regLastName = document.getElementById('regLastName');
+    const regBirthDate = document.getElementById('regBirthDate');
+    const regEmail = document.getElementById('regEmail');
+    const regPassword = document.getElementById('regPassword');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    const registerSubmitBtn = document.getElementById('registerSubmitBtn');
+    const registerError = document.getElementById('registerError');
+    
+    // Profile elements
+    const logoutBtn = document.getElementById('logoutBtn');
     
     // Pay elements
     const payBtn = document.getElementById('payBtn');
     const paywallError = document.getElementById('paywallError');
-    
-    let currentEmail = '';
 
     function hideAllModals() {
         modalOverlay.classList.add('hidden');
-        authModal.classList.add('hidden');
-        verifyModal.classList.add('hidden');
+        loginModal.classList.add('hidden');
+        registerModal.classList.add('hidden');
+        profileModal.classList.add('hidden');
         paywallModal.classList.add('hidden');
-        authError.classList.add('hidden');
-        verifyError.classList.add('hidden');
+        
+        loginError.classList.add('hidden');
+        registerError.classList.add('hidden');
         paywallError.classList.add('hidden');
     }
 
@@ -187,51 +203,239 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(modalId).classList.remove('hidden');
     }
 
-    // Global expose for fetch catch block
     window.showModal = showModal;
 
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', hideAllModals);
     });
 
+    // Link triggers
+    if (toRegisterLink) {
+        toRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal('registerModal');
+        });
+    }
+
+    if (toLoginLink) {
+        toLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal('loginModal');
+        });
+    }
+
+    // Modal navigation trigger
     if (loginBtnNav) {
         loginBtnNav.addEventListener('click', (e) => {
             e.preventDefault();
-            showModal('authModal');
+            const token = localStorage.getItem('token');
+            if (token) {
+                loadAndShowProfile();
+            } else {
+                showModal('loginModal');
+            }
         });
     }
 
     if (paywallLoginBtn) {
         paywallLoginBtn.addEventListener('click', () => {
-            showModal('authModal');
+            showModal('loginModal');
         });
     }
 
-    if (sendCodeBtn) {
-        sendCodeBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            if (!email) return;
+    // Password strength visual indicator
+    if (regPassword) {
+        regPassword.addEventListener('input', () => {
+            const val = regPassword.value;
+            let score = 0;
+            let feedback = "";
             
-            sendCodeBtn.disabled = true;
-            authError.classList.add('hidden');
+            if (val.length >= 8) score += 20;
+            if (/[A-Z]/.test(val)) score += 20;
+            if (/[a-z]/.test(val)) score += 20;
+            if (/\d/.test(val)) score += 20;
+            if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) score += 20;
+            
+            let color = 'var(--danger)';
+            if (val.length < 8) {
+                feedback = "Mot de passe trop court (min 8)";
+                color = 'var(--danger)';
+                score = Math.min(score, 15);
+            } else if (score < 60) {
+                feedback = "Faible (ajoutez majuscules/chiffres)";
+                color = 'var(--danger)';
+            } else if (score < 100) {
+                feedback = "Moyen (ajoutez un caractère spécial)";
+                color = 'var(--warning)';
+            } else {
+                feedback = "Fort (Sécurisé)";
+                color = 'var(--success)';
+            }
+            
+            strengthBar.style.width = `${score}%`;
+            strengthBar.style.backgroundColor = color;
+            strengthText.textContent = feedback;
+            strengthText.style.color = color;
+        });
+    }
+
+    // Connect user (Login)
+    if (loginSubmitBtn) {
+        loginSubmitBtn.addEventListener('click', async () => {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+            
+            if (!email || !password) {
+                loginError.textContent = "Veuillez remplir tous les champs.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            loginSubmitBtn.disabled = true;
+            loginError.classList.add('hidden');
             
             try {
-                const res = await fetch('/api/auth/request-code', {
+                const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email})
+                    body: JSON.stringify({email, password})
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.detail);
+                if (!res.ok) throw new Error(data.detail || "Erreur lors de la connexion.");
                 
-                currentEmail = email;
-                showModal('verifyModal');
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('is_premium', data.is_premium);
+                localStorage.setItem('first_name', data.first_name);
+                
+                hideAllModals();
+                updateNavbarUI();
+                
+                // Subscription pending logic
+                const pendingPlan = sessionStorage.getItem('pending_plan');
+                if (pendingPlan) {
+                    sessionStorage.removeItem('pending_plan');
+                    startSubscriptionFlow(pendingPlan);
+                } else {
+                    alert(`Ravi de vous revoir, ${data.first_name} !`);
+                }
             } catch (e) {
-                authError.textContent = e.message;
-                authError.classList.remove('hidden');
+                loginError.textContent = e.message;
+                loginError.classList.remove('hidden');
             } finally {
-                sendCodeBtn.disabled = false;
+                loginSubmitBtn.disabled = false;
             }
+        });
+    }
+
+    // Register user
+    if (registerSubmitBtn) {
+        registerSubmitBtn.addEventListener('click', async () => {
+            const first_name = regFirstName.value.trim();
+            const last_name = regLastName.value.trim();
+            const birth_date = regBirthDate.value;
+            const email = regEmail.value.trim();
+            const password = regPassword.value;
+            
+            if (!first_name || !last_name || !birth_date || !email || !password) {
+                registerError.textContent = "Veuillez remplir tous les champs.";
+                registerError.classList.remove('hidden');
+                return;
+            }
+            
+            registerSubmitBtn.disabled = true;
+            registerError.classList.add('hidden');
+            
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({first_name, last_name, birth_date, email, password})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erreur de création de compte.");
+                
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('is_premium', data.is_premium);
+                localStorage.setItem('first_name', data.first_name);
+                
+                hideAllModals();
+                updateNavbarUI();
+                
+                const pendingPlan = sessionStorage.getItem('pending_plan');
+                if (pendingPlan) {
+                    sessionStorage.removeItem('pending_plan');
+                    startSubscriptionFlow(pendingPlan);
+                } else {
+                    alert(`Bienvenue sur VerifIA, ${first_name} !`);
+                }
+            } catch (e) {
+                registerError.textContent = e.message;
+                registerError.classList.remove('hidden');
+            } finally {
+                registerSubmitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Profile Detail Modal Loader
+    async function loadAndShowProfile() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        try {
+            const res = await fetch('/api/auth/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                const profile = await res.json();
+                localStorage.setItem('is_premium', profile.is_premium);
+                localStorage.setItem('first_name', profile.first_name);
+                
+                document.getElementById('profFullName').textContent = `${profile.first_name} ${profile.last_name}`;
+                
+                let formattedDate = profile.birth_date;
+                try {
+                    const dateParts = profile.birth_date.split('-');
+                    if (dateParts.length === 3) {
+                        formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    }
+                } catch(e) {}
+                document.getElementById('profBirthDate').textContent = formattedDate;
+                document.getElementById('profEmail').textContent = profile.email;
+                
+                if (profile.is_premium) {
+                    document.getElementById('profPlan').innerHTML = `Membre Pro <span class="badge-pro" style="margin-left: 10px;"><i data-lucide="sparkles" style="width: 10px; height: 10px;"></i>Pro</span>`;
+                } else {
+                    document.getElementById('profPlan').textContent = "Compte Standard (Gratuit)";
+                }
+                
+                lucide.createIcons();
+                showModal('profileModal');
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('is_premium');
+                localStorage.removeItem('first_name');
+                updateNavbarUI();
+                showModal('loginModal');
+            }
+        } catch (e) {
+            console.error("Erreur de chargement profil:", e);
+            alert("Erreur de connexion lors du chargement du profil.");
+        }
+    }
+
+    // Logout Action
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('is_premium');
+            localStorage.removeItem('first_name');
+            hideAllModals();
+            updateNavbarUI();
+            alert("Déconnexion réussie !");
         });
     }
 
@@ -241,12 +445,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const token = localStorage.getItem('token');
         const isPremium = localStorage.getItem('is_premium') === 'true';
+        const firstName = localStorage.getItem('first_name');
         
         if (token) {
+            let label = firstName ? `Bonjour, ${firstName}` : `Mon Compte`;
             if (isPremium) {
-                loginBtnNav.innerHTML = `Mon Compte <span class="badge-pro"><i data-lucide="sparkles" style="width: 10px; height: 10px;"></i>Pro</span>`;
+                loginBtnNav.innerHTML = `${label} <span class="badge-pro"><i data-lucide="sparkles" style="width: 10px; height: 10px;"></i>Pro</span>`;
             } else {
-                loginBtnNav.innerHTML = `Mon Compte`;
+                loginBtnNav.innerHTML = `${label}`;
             }
         } else {
             loginBtnNav.textContent = "Connexion";
@@ -254,53 +460,12 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 
-    if (verifyCodeBtn) {
-        verifyCodeBtn.addEventListener('click', async () => {
-            const code = codeInput.value.trim();
-            if (!code) return;
-            
-            verifyCodeBtn.disabled = true;
-            verifyError.classList.add('hidden');
-            
-            try {
-                const res = await fetch('/api/auth/verify-code', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: currentEmail, code})
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail);
-                
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('is_premium', data.is_premium);
-                
-                hideAllModals();
-                updateNavbarUI();
-                
-                // Vérifier s'il y a une action d'abonnement en attente
-                const pendingPlan = sessionStorage.getItem('pending_plan');
-                if (pendingPlan) {
-                    sessionStorage.removeItem('pending_plan');
-                    startSubscriptionFlow(pendingPlan);
-                } else {
-                    alert("Connecté avec succès !");
-                }
-            } catch (e) {
-                verifyError.textContent = e.message;
-                verifyError.classList.remove('hidden');
-            } finally {
-                verifyCodeBtn.disabled = false;
-            }
-        });
-    }
-
-    // Lancer le flux d'abonnement Revolut (Création de session backend + Redirection)
+    // Lancer le flux d'abonnement Stripe (Création de session backend + Redirection)
     async function startSubscriptionFlow(plan) {
         const token = localStorage.getItem('token');
         if (!token) {
-            // Mettre en mémoire le plan choisi et demander la connexion
             sessionStorage.setItem('pending_plan', plan);
-            showModal('authModal');
+            showModal('loginModal');
             return;
         }
 
@@ -325,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || "Erreur de création de commande.");
             
-            // Rediriger le client vers le checkout Revolut (réel ou simulé)
+            // Rediriger le client vers le checkout (Stripe)
             window.location.href = data.checkout_url;
         } catch (e) {
             alert(e.message || "Erreur lors du traitement du paiement.");
@@ -349,7 +514,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (payBtn) {
-        // Depuis le paywall, on souscrit par défaut à l'offre Annuelle Pro (le meilleur rapport qualité/prix !)
         payBtn.addEventListener('click', async () => {
             startSubscriptionFlow('annual');
         });
@@ -373,10 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const profile = await res.json();
                 localStorage.setItem('is_premium', profile.is_premium);
+                localStorage.setItem('first_name', profile.first_name);
             } else {
                 // Token invalide ou expiré
                 localStorage.removeItem('token');
                 localStorage.removeItem('is_premium');
+                localStorage.removeItem('first_name');
             }
         } catch (e) {
             console.error("Erreur de rafraîchissement profil:", e);
