@@ -22,7 +22,7 @@ def init_db():
     c.execute("PRAGMA table_info(users)")
     columns = [col[1] for col in c.fetchall()]
     
-    if columns and "password_hash" not in columns:
+    if columns and ("password_hash" not in columns or "premium_expires_at" not in columns):
         print("[DB] Ancienne structure de table users détectée. Mise à jour de la base de données...")
         c.execute("DROP TABLE IF EXISTS users")
         c.execute("DROP TABLE IF EXISTS sessions")
@@ -33,7 +33,8 @@ def init_db():
         first_name TEXT,
         last_name TEXT,
         birth_date TEXT,
-        is_premium INTEGER DEFAULT 0
+        is_premium INTEGER DEFAULT 0,
+        premium_expires_at TEXT
     )''')
     c.execute('''CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, email TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS usage (ip TEXT PRIMARY KEY, count INTEGER)''')
@@ -63,6 +64,27 @@ def verify_password(password: str, stored_hash: str) -> bool:
     except Exception:
         return False
 
+def check_and_update_premium_expiry(email: str, conn: sqlite3.Connection) -> bool:
+    c = conn.cursor()
+    c.execute("SELECT is_premium, premium_expires_at FROM users WHERE email=?", (email,))
+    row = c.fetchone()
+    if not row:
+        return False
+    is_premium, expires_at_str = row
+    if is_premium and expires_at_str:
+        try:
+            expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S")
+            if datetime.now() > expires_at:
+                print(f"[PREMIUM] L'accès Premium de {email} a expiré (le {expires_at_str}). Retour au statut standard.")
+                c.execute("UPDATE users SET is_premium=0, premium_expires_at=NULL WHERE email=?", (email,))
+                conn.commit()
+                return False
+            return True
+        except Exception as e:
+            print(f"[PREMIUM] Erreur d'analyse de la date d'expiration pour {email}: {e}")
+            return False
+    return bool(is_premium)
+
 class TextRequest(BaseModel):
     text: str
 
@@ -87,7 +109,11 @@ def get_user_by_token(token: str):
         conn.close()
         return None
     email = row[0]
-    c.execute("SELECT first_name, last_name, birth_date, is_premium FROM users WHERE email=?", (email,))
+    
+    # Vérifier et mettre à jour la date d'expiration
+    check_and_update_premium_expiry(email, conn)
+    
+    c.execute("SELECT first_name, last_name, birth_date, is_premium, premium_expires_at FROM users WHERE email=?", (email,))
     user_row = c.fetchone()
     conn.close()
     if not user_row:
@@ -97,7 +123,8 @@ def get_user_by_token(token: str):
         "first_name": user_row[0],
         "last_name": user_row[1],
         "birth_date": user_row[2],
-        "is_premium": bool(user_row[3])
+        "is_premium": bool(user_row[3]),
+        "premium_expires_at": user_row[4]
     }
 
 @app.post("/api/auth/register")
@@ -283,10 +310,19 @@ async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None,
         except Exception as e:
             print(f"[STRIPE CONFIRM WARNING] Erreur validation Stripe: {e}. Validation locale autorisée.")
             
-    # Surclassement de l'utilisateur dans la base SQLite SQLite3
+    # Calculer la date d'expiration en fonction du plan
+    now = datetime.now()
+    if plan.lower().strip() == "monthly":
+        expiry = now + timedelta(days=30)
+    else: # annual
+        expiry = now + timedelta(days=365)
+        
+    expiry_str = expiry.strftime("%Y-%m-%d %H:%M:%S")
+            
+    # Surclassement de l'utilisateur dans la base SQLite avec date d'expiration
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET is_premium=1 WHERE email=?", (email,))
+    c.execute("UPDATE users SET is_premium=1, premium_expires_at=? WHERE email=?", (expiry_str, email))
     conn.commit()
     conn.close()
     
