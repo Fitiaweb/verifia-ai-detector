@@ -5,23 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VerifIA - Détecteur de Contenu IA Gratuit | Détecter ChatGPT, Claude & Gemini</title>
     
-    <!-- Référencement Google SEO -->
-    <meta name="description" content="Découvrez VerifIA, le meilleur détecteur de texte IA gratuit et fiable. Analysez instantanément vos contenus pour identifier ChatGPT, Claude ou Gemini. Protégez l'intégrité de vos textes.">
-    <meta name="keywords" content="ia detecteur texte, detecteur de texte ia, detecteur ia, detecteur chatgpt gratuit, anti plagiat ia, verifier texte ia, chatgpt detector french, claude ai detector">
-    <meta name="author" content="VerifIA SaaS">
+    <!-- Référencement Google SEO & Indexation -->
+    <meta name="description" content="Détecteur de texte IA gratuit en ligne. Analysez instantanément vos contenus pour identifier ChatGPT, GPT-4, Claude ou Gemini. 3 tests 100% gratuits sans carte bancaire.">
+    <meta name="keywords" content="ia detector for free, detecteur ia gratuit, detecteur chatgpt gratuit, ai detector, verifier texte ia, chatgpt detector, anti plagiat ia, detecter chatgpt, verifia">
+    <meta name="author" content="VerifIA">
     <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://verif-ia.com/">
     
-    <!-- Open Graph (Réseaux Sociaux, Discord, Facebook) -->
-    <meta property="og:title" content="VerifIA - Détecteur de Texte IA 100% Fiable & Gratuit">
-    <meta property="og:description" content="Analysez instantanément vos contenus et repérez les phrases écrites par ChatGPT, Claude ou Gemini grâce à notre technologie hybride unique.">
+    <!-- Open Graph (Réseaux Sociaux, Discord, WhatsApp) -->
+    <meta property="og:title" content="VerifIA - Détecteur de Texte IA Gratuit (3 Tests Offerts)">
+    <meta property="og:description" content="Analysez instantanément vos contenus et repérez les phrases générées par l'intelligence artificielle grâce à notre modèle hybride.">
     <meta property="og:type" content="website">
     <meta property="og:image" content="/static/logo.png">
     
-    <!-- Twitter -->
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="VerifIA - Détecteur de Contenu IA">
-    <meta name="twitter:description" content="Détecteur d'intelligence artificielle gratuit pour vérifier vos textes en français.">
-    <!-- Google Fonts for modern typography -->
+    <meta name="twitter:title" content="VerifIA - Détecteur IA Gratuit">
+    <meta name="twitter:description" content="Détectez ChatGPT, Claude et Gemini instantanément. 3 analyses gratuites.">
+    
+    <!-- Données Structurées Google (Schema.org SoftwareApplication pour SEO) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "VerifIA - Détecteur IA Gratuit",
+      "operatingSystem": "All",
+      "applicationCategory": "BusinessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "description": "Outil d'analyse stylométrique pour détecter les textes rédigés par ChatGPT, Claude et Gemini."
+    }
+    </script>
+
+    <!-- Polices Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -38,7 +57,12 @@
             <span>VerifIA</span>
         </div>
         <div class="nav-links">
+            <div id="navCreditsPill" class="credits-pill">
+                <i data-lucide="zap"></i>
+                <span id="navCreditsText">3 tests gratuits</span>
+            </div>
             <a href="#pricing">Tarifs</a>
+            <a href="#faq">FAQ</a>
             <a href="#" id="loginBtnNav" class="btn-login">Connexion</a>
         </div>
     </nav>
@@ -46,27 +70,33 @@
     <main class="container">
         <header class="hero">
             <h1>L'Intelligence Artificielle a-t-elle écrit <span class="text-gradient">ce texte ?</span></h1>
-            <p>Analysez instantanément n'importe quel contenu pour détecter l'utilisation de ChatGPT, Claude ou Gemini. Protégez l'intégrité de vos contenus.</p>
+            <p>Analysez instantanément n'importe quel texte pour détecter ChatGPT, Claude ou Gemini. <strong>3 analyses gratuites</strong> offertes pour commencer.</p>
         </header>
 
         <section class="detector-section">
             <div class="input-container">
-                <textarea id="textInput" placeholder="Collez votre texte ici (minimum 50 mots recommandés)..." spellcheck="false"></textarea>
+                <textarea id="textInput" placeholder="Collez votre texte ici (articles, devoirs, dissertations, e-mails)..." spellcheck="false"></textarea>
                 <div class="input-footer">
-                    <span id="wordCount">0 mots</span>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span id="wordCount">0 mots</span>
+                        <span id="inputCreditsBadge" style="font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                            <i data-lucide="sparkles" style="width: 14px; height: 14px; color: #ffd700;"></i>
+                            <span id="inputCreditsText">3 tests gratuits disponibles</span>
+                        </span>
+                    </div>
                     <button id="analyzeBtn" class="btn-primary" disabled>
                         <i data-lucide="scan"></i> Analyser le texte
                     </button>
                 </div>
             </div>
 
-            <!-- Loading State -->
+            <!-- État de Chargement -->
             <div id="loadingState" class="hidden">
                 <div class="loader"></div>
-                <p>Analyse neuronale en cours...</p>
+                <p>Analyse stylométrique et neuronale en cours...</p>
             </div>
 
-            <!-- Result Dashboard -->
+            <!-- Tableau de Bord des Résultats -->
             <div id="resultDashboard" class="hidden result-dashboard">
                 <div class="score-card">
                     <h2>Résultat de l'analyse</h2>
@@ -95,14 +125,14 @@
                         <i data-lucide="bot"></i>
                         <div class="stat-info">
                             <span class="stat-value" id="aiSentences">0</span>
-                            <span class="stat-name">Phrases IA détectées</span>
+                            <span class="stat-name">Phrases IA estimées</span>
                         </div>
                     </div>
                     <div class="stat-item">
                         <i data-lucide="book-open"></i>
                         <div class="stat-info">
                             <span class="stat-value" id="readability">Complexe</span>
-                            <span class="stat-name">Lisibilité</span>
+                            <span class="stat-name">Rythme & Style</span>
                         </div>
                     </div>
                     <button id="resetBtn" class="btn-secondary">Nouvelle analyse</button>
@@ -110,51 +140,116 @@
             </div>
         </section>
 
-        <!-- Section Tarifs -->
+        <!-- Section Tarifs / Packs Pay-as-you-go -->
         <section id="pricing" class="pricing-section">
             <div class="pricing-header">
-                <h2>Des Tarifs Simples et Transparents</h2>
-                <p>Débloquez la puissance de l'analyse neuronale hybride sans limites.</p>
+                <h2>Des Tarifs Simples, Sans Abonnement Caché</h2>
+                <p>3 tests offerts à tous. Besoin de plus d'analyses ? Choisissez uniquement ce dont vous avez besoin, sans aucun prélèvement mensuel.</p>
             </div>
             
             <div class="pricing-grid">
-                <!-- Plan Mensuel -->
+                <!-- Pack 2 Tests -->
                 <div class="pricing-card">
-                    <span class="plan-name">Pro Mensuel</span>
-                    <div class="plan-price">4,99€<span>/mois</span></div>
-                    <span class="plan-period">Sans engagement</span>
+                    <span class="plan-name">Pack Découverte</span>
+                    <div class="plan-price">1,00€<span>/ pack</span></div>
+                    <span class="plan-period">2 Tests (0,50€ / test)</span>
                     <ul class="plan-features">
-                        <li><i data-lucide="check-circle-2"></i> Analyses 100% illimitées</li>
-                        <li><i data-lucide="check-circle-2"></i> Modèle Gemini 1.5 Flash Pro</li>
-                        <li><i data-lucide="check-circle-2"></i> Pas de limite de mots</li>
-                        <li><i data-lucide="check-circle-2"></i> Analyse de structure de phrases</li>
+                        <li><i data-lucide="check-circle-2"></i> 2 analyses complètes de texte</li>
+                        <li><i data-lucide="check-circle-2"></i> Modèle Neuronal Hybride</li>
+                        <li><i data-lucide="check-circle-2"></i> Aucun abonnement, paiement unique</li>
+                        <li><i data-lucide="check-circle-2"></i> Crédits valables sans limite de durée</li>
                     </ul>
-                    <button class="btn-primary plan-btn" data-plan="monthly">
-                        <i data-lucide="zap"></i> S'abonner - 4,99€
+                    <button class="btn-primary plan-btn" data-plan="pack_2">
+                        <i data-lucide="zap"></i> Choisir 2 tests - 1,00€
                     </button>
                 </div>
                 
-                <!-- Plan Annuel -->
+                <!-- Pack 5 Tests -->
                 <div class="pricing-card popular">
-                    <span class="plan-name">Pro Annuel</span>
-                    <div class="plan-price">29,99€<span>/an</span></div>
-                    <span class="plan-period">Soit 2,50€/mois (Économisez 50%)</span>
+                    <span class="plan-name">Pack Populaire</span>
+                    <div class="plan-price">2,00€<span>/ pack</span></div>
+                    <span class="plan-period">5 Tests (0,40€ / test - Économisez 20%)</span>
                     <ul class="plan-features">
-                        <li><i data-lucide="check-circle-2"></i> Analyses 100% illimitées</li>
-                        <li><i data-lucide="check-circle-2"></i> Modèle Gemini 1.5 Flash Pro</li>
-                        <li><i data-lucide="check-circle-2"></i> Pas de limite de mots</li>
-                        <li><i data-lucide="check-circle-2"></i> Analyse de structure de phrases</li>
-                        <li><i data-lucide="check-circle-2"></i> Support prioritaire 24/7</li>
+                        <li><i data-lucide="check-circle-2"></i> 5 analyses complètes de texte</li>
+                        <li><i data-lucide="check-circle-2"></i> Détection ChatGPT, Claude & Gemini</li>
+                        <li><i data-lucide="check-circle-2"></i> Score de burstiness & diversité</li>
+                        <li><i data-lucide="check-circle-2"></i> Paiement unique sans engagement</li>
+                        <li><i data-lucide="check-circle-2"></i> Support réactif</li>
                     </ul>
-                    <button class="btn-primary plan-btn" data-plan="annual" style="background: linear-gradient(to right, #ffd700, #ffa500); color: #05050a; border: none;">
-                        <i data-lucide="star"></i> S'abonner - 29,99€
+                    <button class="btn-primary plan-btn" data-plan="pack_5" style="background: linear-gradient(to right, #ffd700, #ffa500); color: #05050a; border: none;">
+                        <i data-lucide="star"></i> Choisir 5 tests - 2,00€
                     </button>
+                </div>
+
+                <!-- Pack 10 Tests -->
+                <div class="pricing-card">
+                    <span class="plan-name">Pack Économique</span>
+                    <div class="plan-price">4,00€<span>/ pack</span></div>
+                    <span class="plan-period">10 Tests (0,40€ / test)</span>
+                    <ul class="plan-features">
+                        <li><i data-lucide="check-circle-2"></i> 10 analyses haute précision</li>
+                        <li><i data-lucide="check-circle-2"></i> Idéal pour devoirs & mémoires</li>
+                        <li><i data-lucide="check-circle-2"></i> Pas de limite de mots par test</li>
+                        <li><i data-lucide="check-circle-2"></i> Sans abonnement, utilisable à vie</li>
+                    </ul>
+                    <button class="btn-primary plan-btn" data-plan="pack_10">
+                        <i data-lucide="sparkles"></i> Choisir 10 tests - 4,00€
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section FAQ pour le Référencement Google SEO -->
+        <section id="faq" class="faq-section">
+            <div class="faq-header">
+                <h2>Questions Fréquentes (FAQ)</h2>
+                <p>Tout ce que vous devez savoir sur le détecteur IA VerifIA</p>
+            </div>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <i data-lucide="help-circle"></i>
+                        <span>Puis-je tester gratuitement sans carte bancaire ?</span>
+                    </div>
+                    <div class="faq-answer">
+                        Oui, absolument ! VerifIA offre <strong>3 tests 100% gratuits</strong> à chaque visiteur. Aucune carte bancaire ni information de paiement n'est requise pour essayer le détecteur.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <i data-lucide="help-circle"></i>
+                        <span>Quels modèles d'intelligence artificielle sont détectés ?</span>
+                    </div>
+                    <div class="faq-answer">
+                        Notre système hybride repère les empreintes des principaux LLMs du marché : ChatGPT (GPT-3.5, GPT-4, GPT-4o), Anthropic Claude (Claude 3 / 3.5 Sonnet) et Google Gemini.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <i data-lucide="help-circle"></i>
+                        <span>Est-ce un abonnement avec prélèvement mensuel automatique ?</span>
+                    </div>
+                    <div class="faq-answer">
+                        Non ! Nous utilisons un système de <strong>packs à la demande (Pay-As-You-Go)</strong> : 1€ pour 2 tests, 2€ pour 5 tests, ou 4€ pour 10 tests. Vous payez une seule fois, vous utilisez vos tests à votre rythme, et vous n'êtes jamais réengagé.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <i data-lucide="help-circle"></i>
+                        <span>Comment fonctionne l'algorithme de détection ?</span>
+                    </div>
+                    <div class="faq-answer">
+                        L'algorithme analyse la variance de longueur des phrases (burstiness), la diversité lexicale, la structure syntaxique et les schémas de prévisibilité stylométriques propres aux générateurs de texte IA.
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Modales -->
     <!-- Modales -->
     <div id="modalOverlay" class="modal-overlay hidden">
         <!-- Login Modal -->
@@ -163,13 +258,13 @@
                 <h2>Connexion</h2>
                 <button class="close-modal"><i data-lucide="x"></i></button>
             </div>
-            <p>Se connecter à votre compte VerifIA.</p>
+            <p>Connectez-vous pour retrouver vos crédits et votre historique.</p>
             <input type="email" id="loginEmail" placeholder="votre@email.com" class="modal-input" style="margin-top: 15px;">
             <input type="password" id="loginPassword" placeholder="Votre mot de passe" class="modal-input" style="margin-top: 10px;">
             <button id="loginSubmitBtn" class="btn-primary" style="margin-top: 20px; width: 100%;">Se connecter</button>
             <p id="loginError" class="error-text hidden"></p>
             <p style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
-                Pas encore de compte ? <a href="#" id="toRegisterLink" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">S'inscrire</a>
+                Pas encore de compte ? <a href="#" id="toRegisterLink" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">Créer un compte</a>
             </p>
         </div>
 
@@ -179,6 +274,7 @@
                 <h2>Créer un compte</h2>
                 <button class="close-modal"><i data-lucide="x"></i></button>
             </div>
+            <p>Inscrivez-vous pour sauvegarder vos tests et recharger des crédits.</p>
             <div class="modal-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                 <input type="text" id="regFirstName" placeholder="Prénom" class="modal-input" style="margin-top: 0;">
                 <input type="text" id="regLastName" placeholder="Nom" class="modal-input" style="margin-top: 0;">
@@ -188,9 +284,8 @@
                 <input type="date" id="regBirthDate" class="modal-input" style="margin-top: 0;">
             </div>
             <input type="email" id="regEmail" placeholder="votre@email.com" class="modal-input" style="margin-top: 10px;">
-            <input type="password" id="regPassword" placeholder="Mot de passe sécurisé" class="modal-input" style="margin-top: 10px;">
+            <input type="password" id="regPassword" placeholder="Mot de passe (min 8 car.)" class="modal-input" style="margin-top: 10px;">
             
-            <!-- Indicateur de force du mot de passe -->
             <div class="password-strength-container" style="margin-top: 8px; width: 100%;">
                 <div class="strength-bar-bg" style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden;">
                     <div id="strengthBar" style="width: 0%; height: 100%; background: var(--danger); transition: width 0.3s ease, background-color 0.3s ease;"></div>
@@ -216,16 +311,8 @@
                 <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
                     <i data-lucide="user" style="color: var(--accent-primary);"></i>
                     <div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Identité</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Utilisateur</div>
                         <div style="font-weight: 600;" id="profFullName">-</div>
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
-                    <i data-lucide="calendar" style="color: var(--accent-primary);"></i>
-                    <div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Date de naissance</div>
-                        <div style="font-weight: 600;" id="profBirthDate">-</div>
                     </div>
                 </div>
 
@@ -238,34 +325,68 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
-                    <i data-lucide="sparkles" style="color: #ffd700;"></i>
+                    <i data-lucide="zap" style="color: #ffd700;"></i>
                     <div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Type de compte</div>
-                        <div style="font-weight: 600; display: flex; align-items: center; gap: 8px;" id="profPlan">-</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Crédits d'analyse restants</div>
+                        <div style="font-weight: 700; color: #ffd700;" id="profCredits">0 test</div>
                     </div>
                 </div>
             </div>
 
-            <button id="logoutBtn" class="btn-secondary" style="border-color: var(--danger); color: var(--danger); font-weight: bold; margin-top: 15px; width: 100%;">Se déconnecter</button>
+            <button id="profileBuyMoreBtn" class="btn-primary" style="width: 100%; margin-bottom: 10px;">
+                <i data-lucide="plus-circle"></i> Recharger des tests
+            </button>
+            <button id="logoutBtn" class="btn-secondary" style="border-color: var(--danger); color: var(--danger); font-weight: bold; width: 100%;">Se déconnecter</button>
         </div>
 
-        <!-- Paywall Modal -->
+        <!-- Paywall Modal (Choix des packs quand la limite est atteinte) -->
         <div id="paywallModal" class="modal-card hidden">
             <div class="modal-header">
-                <h2 style="display: flex; align-items: center; gap: 10px; color: var(--danger);"><i data-lucide="lock"></i> Limite Atteinte</h2>
+                <h2 style="display: flex; align-items: center; gap: 10px; color: var(--warning);"><i data-lucide="lock"></i> Limite Gratuite Atteinte</h2>
                 <button class="close-modal"><i data-lucide="x"></i></button>
             </div>
-            <p style="margin-bottom: 15px;">Vous avez utilisé vos 3 essais gratuits.</p>
-            <p style="margin-bottom: 25px;">Passez en <strong style="color: var(--accent);">illimité</strong> pour seulement <strong>10€</strong> (paiement unique) pour continuer à utiliser VerifIA.</p>
-            <div class="paywall-actions">
-                <button id="payBtn" class="btn-primary" style="background: var(--accent); color: white; border: none; font-weight: bold; width: 100%; margin-bottom: 10px;">
-                    Débloquer l'Illimité - 10€
-                </button>
-                <button id="paywallLoginBtn" class="btn-secondary" style="width: 100%;">
-                    Déjà payé ? Se connecter
-                </button>
+            <p style="margin-top: 5px;">Vous avez utilisé vos <strong>3 tests gratuits</strong>. Choisissez un pack pour continuer à analyser immédiatement :</p>
+            
+            <div class="paywall-packs-grid">
+                <div class="pack-choice-btn" data-plan="pack_2">
+                    <div class="pack-choice-info">
+                        <div class="pack-choice-title">
+                            <i data-lucide="zap" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+                            Pack Découverte (2 Tests)
+                        </div>
+                        <div class="pack-choice-desc">0,50€ par test • Sans engagement</div>
+                    </div>
+                    <div class="pack-choice-price">1,00 €</div>
+                </div>
+
+                <div class="pack-choice-btn featured" data-plan="pack_5">
+                    <div class="pack-choice-info">
+                        <div class="pack-choice-title">
+                            <i data-lucide="star" style="width: 16px; height: 16px; color: #ffd700;"></i>
+                            Pack Populaire (5 Tests)
+                            <span style="font-size: 0.65rem; background: #ffd700; color: #000; padding: 2px 6px; border-radius: 4px; font-weight: 800;">TOP</span>
+                        </div>
+                        <div class="pack-choice-desc">0,40€ par test • Économisez 20%</div>
+                    </div>
+                    <div class="pack-choice-price">2,00 €</div>
+                </div>
+
+                <div class="pack-choice-btn" data-plan="pack_10">
+                    <div class="pack-choice-info">
+                        <div class="pack-choice-title">
+                            <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #38bdf8;"></i>
+                            Pack Économique (10 Tests)
+                        </div>
+                        <div class="pack-choice-desc">Idéal pour longs mémoires • Sans abonnement</div>
+                    </div>
+                    <div class="pack-choice-price">4,00 €</div>
+                </div>
             </div>
-            <p id="paywallError" class="error-text hidden" style="margin-top: 15px;"></p>
+
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 15px;">
+                Déjà des crédits achetés ? <a href="#" id="paywallLoginLink" style="color: var(--accent-primary); font-weight: 600; text-decoration: none;">Se connecter</a>
+            </p>
+            <p id="paywallError" class="error-text hidden" style="margin-top: 10px;"></p>
         </div>
     </div>
 

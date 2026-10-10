@@ -1,51 +1,130 @@
-from fastapi import FastAPI, HTTPException, Request, Header
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
 import os
 import sqlite3
 import random
 import string
-from datetime import datetime, timedelta
+import hashlib
+import secrets
+import re
+import asyncio
+from datetime import datetime
 from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, HTTPException, Request, Header
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, RedirectResponse
+from pydantic import BaseModel
 import stripe
 
-stripe.api_key = os.getenv("STRIPE_API_KEY", None)
+# Configuration Stripe
+stripe_key = os.getenv("STRIPE_API_KEY", "")
+stripe.api_key = stripe_key if stripe_key else None
 
-app = FastAPI(title="VerifIA Backend")
+app = FastAPI(title="VerifIA Backend - Détecteur IA SaaS")
+
+# Catalogue des packs de tests (Micro-paiements pay-as-you-go)
+PACK_PLANS = {
+    "pack_2": {
+        "name": "Pack Découverte (2 Tests)",
+        "tests": 2,
+        "price_cents": 100,  # 1.00 € / $1
+        "price_str": "1,00 €"
+    },
+    "pack_5": {
+        "name": "Pack Populaire (5 Tests)",
+        "tests": 5,
+        "price_cents": 200,  # 2.00 € / $2
+        "price_str": "2,00 €"
+    },
+    "pack_10": {
+        "name": "Pack Économique (10 Tests)",
+        "tests": 10,
+        "price_cents": 400,  # 4.00 € / $4
+        "price_str": "4,00 €"
+    }
+}
+
+# ==========================================
+# BASE DE DONNÉES ET GESTION DES UTILISATEURS
+# ==========================================
 
 def init_db():
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
     
-    # Vérifier si la table users existe et nécessite une mise à jour
     c.execute("PRAGMA table_info(users)")
-    columns = [col[1] for col in c.fetchall()]
-    
-    if columns and ("password_hash" not in columns or "premium_expires_at" not in columns):
-        print("[DB] Ancienne structure de table users détectée. Mise à jour de la base de données...")
+    cols = [col[1] for col in c.fetchall()]
+    if cols and "password_hash" not in cols:
+        print("[DB] Ancienne structure legacy de table users détectée. Mise à niveau du schéma...")
         c.execute("DROP TABLE IF EXISTS users")
         c.execute("DROP TABLE IF EXISTS sessions")
-        
+
+    # Création table utilisateurs avec crédits (3 tests offerts par défaut)
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         email TEXT PRIMARY KEY, 
         password_hash TEXT,
         first_name TEXT,
         last_name TEXT,
         birth_date TEXT,
-        is_premium INTEGER DEFAULT 0,
-        premium_expires_at TEXT
+        credits INTEGER DEFAULT 3,
+        created_at TEXT
     )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, email TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS usage (ip TEXT PRIMARY KEY, count INTEGER)''')
+    
+    # Migration douce si credits manque
+    c.execute("PRAGMA table_info(users)")
+    cols = [col[1] for col in c.fetchall()]
+    if "credits" not in cols:
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN credits INTEGER DEFAULT 3")
+        except Exception:
+            pass
+            
+    c.execute('''CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY, 
+        email TEXT,
+        created_at TEXT
+    )''')
+
+    c.execute("PRAGMA table_info(sessions)")
+    sess_cols = [col[1] for col in c.fetchall()]
+    if "created_at" not in sess_cols:
+        try:
+            c.execute("ALTER TABLE sessions ADD COLUMN created_at TEXT")
+        except Exception:
+            pass
+    
+    # Suivi d'utilisation anonyme par IP (3 tests gratuits max)
+    c.execute('''CREATE TABLE IF NOT EXISTS usage (
+        ip TEXT PRIMARY KEY, 
+        count INTEGER DEFAULT 0,
+        last_used TEXT
+    )''')
+
+    c.execute("PRAGMA table_info(usage)")
+    usage_cols = [col[1] for col in c.fetchall()]
+    if "last_used" not in usage_cols:
+        try:
+            c.execute("ALTER TABLE usage ADD COLUMN last_used TEXT")
+        except Exception:
+            pass
+    
+    # Historique des commandes / paiements
+    c.execute('''CREATE TABLE IF NOT EXISTS payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT,
+        email TEXT,
+        plan TEXT,
+        tests_added INTEGER,
+        amount_cents INTEGER,
+        created_at TEXT
+    )''')
+    
     conn.commit()
     conn.close()
 
 init_db()
-
-import hashlib
-import secrets
-import re
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
@@ -64,26 +143,34 @@ def verify_password(password: str, stored_hash: str) -> bool:
     except Exception:
         return False
 
-def check_and_update_premium_expiry(email: str, conn: sqlite3.Connection) -> bool:
+def get_user_by_token(token: str):
+    if not token:
+        return None
+    conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute("SELECT is_premium, premium_expires_at FROM users WHERE email=?", (email,))
+    c.execute("SELECT email FROM sessions WHERE token=?", (token,))
     row = c.fetchone()
     if not row:
-        return False
-    is_premium, expires_at_str = row
-    if is_premium and expires_at_str:
-        try:
-            expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S")
-            if datetime.now() > expires_at:
-                print(f"[PREMIUM] L'accès Premium de {email} a expiré (le {expires_at_str}). Retour au statut standard.")
-                c.execute("UPDATE users SET is_premium=0, premium_expires_at=NULL WHERE email=?", (email,))
-                conn.commit()
-                return False
-            return True
-        except Exception as e:
-            print(f"[PREMIUM] Erreur d'analyse de la date d'expiration pour {email}: {e}")
-            return False
-    return bool(is_premium)
+        conn.close()
+        return None
+    email = row[0]
+    
+    c.execute("SELECT first_name, last_name, birth_date, credits FROM users WHERE email=?", (email,))
+    user_row = c.fetchone()
+    conn.close()
+    if not user_row:
+        return None
+    return {
+        "email": email, 
+        "first_name": user_row[0],
+        "last_name": user_row[1],
+        "birth_date": user_row[2],
+        "credits": user_row[3] if user_row[3] is not None else 0
+    }
+
+# ==========================================
+# MODÈLES PYDANTIC
+# ==========================================
 
 class TextRequest(BaseModel):
     text: str
@@ -99,33 +186,13 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-def get_user_by_token(token: str):
-    if not token: return None
-    conn = sqlite3.connect("app.db")
-    c = conn.cursor()
-    c.execute("SELECT email FROM sessions WHERE token=?", (token,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
-        return None
-    email = row[0]
-    
-    # Vérifier et mettre à jour la date d'expiration
-    check_and_update_premium_expiry(email, conn)
-    
-    c.execute("SELECT first_name, last_name, birth_date, is_premium, premium_expires_at FROM users WHERE email=?", (email,))
-    user_row = c.fetchone()
-    conn.close()
-    if not user_row:
-        return None
-    return {
-        "email": email, 
-        "first_name": user_row[0],
-        "last_name": user_row[1],
-        "birth_date": user_row[2],
-        "is_premium": bool(user_row[3]),
-        "premium_expires_at": user_row[4]
-    }
+class PaymentSessionRequest(BaseModel):
+    plan: str
+    email: Optional[str] = None
+
+# ==========================================
+# ENDPOINTS D'AUTHENTIFICATION & PROFILS
+# ==========================================
 
 @app.post("/api/auth/register")
 async def register_user(req: RegisterRequest):
@@ -142,17 +209,8 @@ async def register_user(req: RegisterRequest):
     if not birth_date:
         raise HTTPException(status_code=400, detail="La date de naissance est requise.")
         
-    # Vérification de la force du mot de passe
     if len(password) < 8:
         raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins 8 caractères.")
-    if not re.search(r"[A-Z]", password):
-        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins une lettre majuscule.")
-    if not re.search(r"[a-z]", password):
-        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins une lettre minuscule.")
-    if not re.search(r"\d", password):
-        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins un chiffre.")
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins un caractère spécial.")
         
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
@@ -163,41 +221,17 @@ async def register_user(req: RegisterRequest):
         raise HTTPException(status_code=400, detail="Cet e-mail est déjà utilisé.")
         
     password_hash = hash_password(password)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # 3 tests offerts à la création du compte
+    initial_credits = 3
     c.execute(
-        "INSERT INTO users (email, password_hash, first_name, last_name, birth_date, is_premium) VALUES (?, ?, ?, ?, ?, 0)",
-        (email, password_hash, first_name, last_name, birth_date)
+        "INSERT INTO users (email, password_hash, first_name, last_name, birth_date, credits, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (email, password_hash, first_name, last_name, birth_date, initial_credits, now_str)
     )
     
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
-    c.execute("INSERT INTO sessions (token, email) VALUES (?, ?)", (token, email))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"token": token, "email": email, "first_name": first_name, "last_name": last_name, "birth_date": birth_date, "is_premium": False}
-
-@app.post("/api/auth/login")
-async def login_user(req: LoginRequest):
-    email = req.email.lower().strip()
-    password = req.password
-    
-    conn = sqlite3.connect("app.db")
-    c = conn.cursor()
-    c.execute("SELECT password_hash, first_name, last_name, birth_date, is_premium FROM users WHERE email=?", (email,))
-    row = c.fetchone()
-    
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Adresse e-mail ou mot de passe incorrect.")
-        
-    stored_hash, first_name, last_name, birth_date, is_premium = row
-    if not verify_password(password, stored_hash):
-        conn.close()
-        raise HTTPException(status_code=400, detail="Adresse e-mail ou mot de passe incorrect.")
-        
-    token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
-    c.execute("INSERT INTO sessions (token, email) VALUES (?, ?)", (token, email))
+    c.execute("INSERT INTO sessions (token, email, created_at) VALUES (?, ?, ?)", (token, email, now_str))
     
     conn.commit()
     conn.close()
@@ -207,8 +241,39 @@ async def login_user(req: LoginRequest):
         "email": email, 
         "first_name": first_name, 
         "last_name": last_name, 
-        "birth_date": birth_date, 
-        "is_premium": bool(is_premium)
+        "credits": initial_credits
+    }
+
+@app.post("/api/auth/login")
+async def login_user(req: LoginRequest):
+    email = req.email.lower().strip()
+    password = req.password
+    
+    conn = sqlite3.connect("app.db")
+    c = conn.cursor()
+    c.execute("SELECT password_hash, first_name, last_name, birth_date, credits FROM users WHERE email=?", (email,))
+    row = c.fetchone()
+    
+    if not row or not verify_password(password, row[0]):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Adresse e-mail ou mot de passe incorrect.")
+        
+    first_name, last_name, birth_date, credits = row[1], row[2], row[3], row[4]
+    credits = credits if credits is not None else 0
+    
+    token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO sessions (token, email, created_at) VALUES (?, ?, ?)", (token, email, now_str))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "token": token, 
+        "email": email, 
+        "first_name": first_name, 
+        "last_name": last_name, 
+        "credits": credits
     }
 
 @app.get("/api/auth/profile")
@@ -221,54 +286,258 @@ async def get_profile(Authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Non autorisé")
     return user
 
-@app.post("/api/upgrade")
-async def upgrade_account(Authorization: Optional[str] = Header(None)):
-    if not Authorization or not Authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Non autorisé")
-    token = Authorization.split(" ")[1]
-    user = get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Non autorisé")
+@app.get("/api/credits")
+async def get_credits_status(request: Request, Authorization: Optional[str] = Header(None)):
+    """ Permet au frontend de connaître immédiatement le nombre de tests restants """
+    user = None
+    if Authorization and Authorization.startswith("Bearer "):
+        token = Authorization.split(" ")[1]
+        user = get_user_by_token(token)
         
+    if user:
+        return {
+            "is_logged_in": True,
+            "email": user["email"],
+            "first_name": user["first_name"],
+            "tests_remaining": max(0, user["credits"])
+        }
+    else:
+        client_ip = request.client.host
+        conn = sqlite3.connect("app.db")
+        c = conn.cursor()
+        c.execute("SELECT count FROM usage WHERE ip=?", (client_ip,))
+        row = c.fetchone()
+        conn.close()
+        used = row[0] if row else 0
+        remaining = max(0, 3 - used)
+        return {
+            "is_logged_in": False,
+            "tests_remaining": remaining
+        }
+
+# ==========================================
+# MOTEUR D'ANALYSE ET GESTION DES QUOTAS
+# ==========================================
+
+@app.post("/api/analyze")
+async def analyze_text(request_data: TextRequest, req: Request, Authorization: Optional[str] = Header(None)):
+    user = None
+    if Authorization and Authorization.startswith("Bearer "):
+        token = Authorization.split(" ")[1]
+        user = get_user_by_token(token)
+
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET is_premium=1 WHERE email=?", (user["email"],))
-    conn.commit()
+
+    if user:
+        # Mode Utilisateur Connecté: basé sur les crédits
+        current_credits = user.get("credits", 0)
+        if current_credits <= 0:
+            conn.close()
+            raise HTTPException(
+                status_code=402, 
+                detail="Vous n'avez plus de tests disponibles. Choisissez un pack pour continuer."
+            )
+        # Décrémenter 1 test
+        c.execute("UPDATE users SET credits = credits - 1 WHERE email=?", (user["email"],))
+        conn.commit()
+        remaining_tests = current_credits - 1
+    else:
+        # Mode Anonyme / Invité: basé sur l'adresse IP (3 tests offerts)
+        client_ip = req.client.host
+        c.execute("SELECT count FROM usage WHERE ip=?", (client_ip,))
+        row = c.fetchone()
+        count = row[0] if row else 0
+        
+        if count >= 3:
+            conn.close()
+            raise HTTPException(
+                status_code=402, 
+                detail="Vous avez utilisé vos 3 tests gratuits. Choisissez un pack de tests pour continuer."
+            )
+            
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if row:
+            c.execute("UPDATE usage SET count=count+1, last_used=? WHERE ip=?", (now_str, client_ip))
+        else:
+            c.execute("INSERT INTO usage (ip, count, last_used) VALUES (?, 1, ?)", (client_ip, now_str))
+        conn.commit()
+        remaining_tests = 3 - (count + 1)
+
     conn.close()
-    return {"message": "Compte passé en Premium avec succès !", "is_premium": True}
+
+    text = request_data.text.strip()
+    if len(text) < 10:
+        raise HTTPException(status_code=400, detail="Le texte est trop court (minimum 10 caractères).")
+
+    # Tentative d'analyse avec l'API Gemini si configurée
+    gemini_result = None
+    try:
+        gemini_result = await gemini_verification(text)
+    except Exception as e:
+        print(f"[GEMINI ERROR] {e}. Bascule vers l'analyse experte locale.")
+
+    if gemini_result is not None:
+        result = gemini_result
+    else:
+        result = local_expert_analysis(text)
+
+    # Ajouter le nombre de tests restants dans la réponse
+    result["tests_remaining"] = remaining_tests
+    result["is_logged_in"] = bool(user)
+    return result
 
 # ==========================================
-# CONFIGURATION ET ENDPOINTS PAIEMENT STRIPE
+# MOTEURS DE DÉTECTION (GEMINI + HEURISTIQUE)
 # ==========================================
 
-class PaymentSessionRequest(BaseModel):
-    plan: str
+import google.generativeai as genai
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+gemini_model = None
+
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+    except Exception as e:
+        print(f"[GEMINI INIT WARNING] Impossible d'initialiser Gemini: {e}")
+
+async def ask_gemini(text: str):
+    if not gemini_model:
+        return None
+        
+    prompt = f"""Tu es un expert mondial en analyse stylométrique et détection de modèles d'IA (ChatGPT, Claude, Gemini).
+Analyse le texte suivant et évalue s'il a été rédigé par une intelligence artificielle.
+Repère les caractéristiques typiques : syntaxe trop régulière, manque d'aspérités humaines, transitions mécaniques, vocabulaire poli et standardisé.
+Réponds STRICTEMENT par le mot 'OUI' (si c'est très probablement une IA) ou 'NON' (si c'est rédigé par un humain).
+Texte : '{text}'"""
+
+    try:
+        response = await asyncio.to_thread(gemini_model.generate_content, prompt)
+        resp_lower = response.text.strip().lower()
+        if "oui" in resp_lower[:10]:
+            return True
+        if "non" in resp_lower[:10]:
+            return False
+        return None
+    except Exception as e:
+        print(f"[GEMINI CALL ERROR] {e}")
+        return None
+
+async def gemini_verification(text: str):
+    is_ai = await ask_gemini(text)
+    if is_ai is None:
+        return None
+
+    local_res = local_expert_analysis(text)
+    local_score = local_res["ai_probability"]
+
+    if is_ai:
+        final_probability = max(78.0, (82.0 * 0.6) + (local_score * 0.4))
+    else:
+        if local_score >= 70:
+            final_probability = local_score * 0.8
+        else:
+            final_probability = local_score * 0.35
+
+    return {
+        "ai_probability": round(min(99.0, max(1.0, final_probability)), 2),
+        "source": "Modèle Neuronal Hybride (Gemini + Stylométrie)"
+    }
+
+def local_expert_analysis(text: str):
+    """ Analyse stylométrique avancée et équilibrée """
+    text_lower = text.lower()
+    score = 12.0  # Base neutre
+    
+    # 1. Expressions sur-représentées dans les réponses des LLM
+    llm_tells = [
+        "il est important de noter", "il convient de souligner", 
+        "en définitive", "dans un monde où", "à l'ère du numérique",
+        "catalyseur", "naviguer dans le paysage", "un voyage vers",
+        "il est primordial de", "force est de constater", "n'hésitez pas à",
+        "chatgpt", "intelligence artificielle", "modèle de langage"
+    ]
+    tells_matches = sum(1 for tell in llm_tells if tell in text_lower)
+    score += tells_matches * 12
+    
+    # 2. Analyse structurelle typique
+    if re.search(r':\s*\n\s*[-*•]', text):
+        score += 15
+    if len(re.findall(r'(?:^|\n)\s*\d+\.\s', text)) >= 2:
+        score += 15
+        
+    # Conclusion explicite
+    if re.search(r'(?:^|\n)(?:En conclusion|En résumé|Pour conclure)\s*[:,]', text, re.IGNORECASE):
+        score += 20
+
+    # 3. Variance de la longueur des phrases (Burstiness)
+    sentences = [s.strip() for s in re.split(r'[.!?]+', text) if len(s.strip()) > 5]
+    if len(sentences) >= 3:
+        lengths = [len(s.split()) for s in sentences]
+        avg_len = sum(lengths) / len(lengths)
+        variance = sum((l - avg_len) ** 2 for l in lengths) / len(lengths)
+        
+        # Faible variance = rythme régulier de l'IA
+        if variance < 15:
+            score += 25
+        elif variance < 30:
+            score += 12
+        elif variance > 80:
+            score -= 15  # Rythme varié et humain
+            
+        if avg_len > 24:
+            score += 10
+            
+    # 4. Diversité lexicale
+    words = [w for w in re.findall(r'\b\w+\b', text_lower) if len(w) > 3]
+    if len(words) > 15:
+        unique_words = len(set(words))
+        diversity = unique_words / len(words)
+        if diversity < 0.50:
+            score += 18
+            
+    score = max(5.0, min(95.0, score))
+    # Variation d'aléa stylométrique stable
+    hash_shift = (sum(ord(c) for c in text[:40]) % 7) - 3
+    final_score = max(2.0, min(98.0, score + hash_shift))
+    
+    return {
+        "ai_probability": round(final_score, 2),
+        "source": "Analyse Stylométrique Experte"
+    }
+
+# ==========================================
+# PAIEMENTS ET RECHARGE DE CRÉDITS
+# ==========================================
 
 @app.post("/api/payments/create-session")
 async def create_payment_session(req: PaymentSessionRequest, request: Request, Authorization: Optional[str] = Header(None)):
-    if not Authorization or not Authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Non autorisé")
-    token = Authorization.split(" ")[1]
-    user = get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Non autorisé")
+    user = None
+    if Authorization and Authorization.startswith("Bearer "):
+        token = Authorization.split(" ")[1]
+        user = get_user_by_token(token)
         
-    email = user["email"]
+    email = user["email"] if user else (req.email or "").strip().lower()
+    if not email:
+        raise HTTPException(
+            status_code=400, 
+            detail="Une adresse e-mail ou une connexion est requise pour attribuer vos tests."
+        )
+        
     plan = req.plan.lower().strip()
-    if plan not in ["monthly", "annual"]:
-        raise HTTPException(status_code=400, detail="Plan invalide")
+    if plan not in PACK_PLANS:
+        raise HTTPException(status_code=400, detail="Pack sélectionné invalide.")
         
-    # Tarification attractive (en centimes EUR)
-    price_cents = 499 if plan == "monthly" else 2999
-    plan_name = "VerifIA - Abonnement Mensuel Pro" if plan == "monthly" else "VerifIA - Abonnement Annuel Pro"
+    plan_info = PACK_PLANS[plan]
+    order_id = "ord_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
     
-    # Déterminer l'URL de redirection de façon dynamique
     origin = str(request.base_url).rstrip('/')
-    # Forcer HTTPS pour la production Render afin d'assurer la sécurité du paiement
     if "localhost" not in origin and "127.0.0.1" not in origin:
         origin = origin.replace("http://", "https://")
-        
-    # Si la clé Stripe est fournie, on crée une session Stripe Checkout officielle
+
+    # Mode Stripe Réel si la clé est fournie
     if stripe.api_key and stripe.api_key != "mock":
         try:
             session = stripe.checkout.Session.create(
@@ -277,235 +546,76 @@ async def create_payment_session(req: PaymentSessionRequest, request: Request, A
                     'price_data': {
                         'currency': 'eur',
                         'product_data': {
-                            'name': plan_name,
+                            'name': f"VerifIA - {plan_info['name']}",
                         },
-                        'unit_amount': price_cents,
+                        'unit_amount': plan_info['price_cents'],
                     },
                     'quantity': 1,
                 }],
                 mode='payment',
                 customer_email=email,
-                success_url=f"{origin}/api/payments/confirm?email={email}&plan={plan}&session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=f"{origin}/api/payments/confirm?email={email}&plan={plan}&session_id={{CHECKOUT_SESSION_ID}}&order_id={order_id}",
                 cancel_url=f"{origin}/#pricing",
             )
             return {"checkout_url": session.url}
         except Exception as e:
-            print(f"\n[STRIPE API ERROR] Impossible de créer la session Stripe Checkout: {e}. Fallback vers Simulation.\n")
+            print(f"[STRIPE ERROR] {e}. Utilisation du mode simulation.")
             
-    # Mode simulation (magnifique interface locale interactive)
-    order_id = "ord_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
+    # Mode Simulation interactive (idéal pour tester sans carte réelle)
     sim_url = f"/checkout-simulation.html?plan={plan}&email={email}&session_id={order_id}"
     return {"checkout_url": sim_url}
 
 @app.get("/api/payments/confirm")
 async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None, session_id: Optional[str] = None):
     email = email.lower().strip()
+    plan = plan.lower().strip()
     
-    # Vérification réelle auprès de Stripe si configuré
+    if plan not in PACK_PLANS:
+        raise HTTPException(status_code=400, detail="Pack inconnu.")
+        
+    plan_info = PACK_PLANS[plan]
+    tests_to_add = plan_info["tests"]
+    
+    # Vérification Stripe si applicable
     if stripe.api_key and stripe.api_key != "mock" and session_id:
         try:
             session = stripe.checkout.Session.retrieve(session_id)
             if session.payment_status != "paid":
-                raise HTTPException(status_code=400, detail="Transaction Stripe non finalisée.")
+                raise HTTPException(status_code=400, detail="Paiement Stripe non finalisé.")
         except Exception as e:
-            print(f"[STRIPE CONFIRM WARNING] Erreur validation Stripe: {e}. Validation locale autorisée.")
+            print(f"[STRIPE VERIFY WARNING] {e}")
             
-    # Calculer la date d'expiration en fonction du plan
-    now = datetime.now()
-    if plan.lower().strip() == "monthly":
-        expiry = now + timedelta(days=30)
-    else: # annual
-        expiry = now + timedelta(days=365)
-        
-    expiry_str = expiry.strftime("%Y-%m-%d %H:%M:%S")
-            
-    # Surclassement de l'utilisateur dans la base SQLite avec date d'expiration
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET is_premium=1, premium_expires_at=? WHERE email=?", (expiry_str, email))
+    
+    # Vérifier si l'utilisateur existe déjà
+    c.execute("SELECT credits FROM users WHERE email=?", (email,))
+    row = c.fetchone()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    if row:
+        new_credits = (row[0] or 0) + tests_to_add
+        c.execute("UPDATE users SET credits=? WHERE email=?", (new_credits, email))
+    else:
+        # Création d'un profil pré-activé pour cet e-mail avec ses tests achetés + 3 offerts
+        new_credits = 3 + tests_to_add
+        c.execute(
+            "INSERT INTO users (email, password_hash, first_name, last_name, birth_date, credits, created_at) VALUES (?, '', 'Membre', '', '', ?, ?)",
+            (email, new_credits, now_str)
+        )
+        
+    c.execute(
+        "INSERT INTO payments (order_id, email, plan, tests_added, amount_cents, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (order_id or "sim", email, plan, tests_to_add, plan_info["price_cents"], now_str)
+    )
     conn.commit()
     conn.close()
     
-    # Redirection vers la page de succès
-    return FileResponse("payment-success.html")
+    return RedirectResponse(url=f"/payment-success.html?plan={plan}&tests={tests_to_add}&email={email}")
 
-
-@app.post("/api/analyze")
-async def analyze_text(request: TextRequest, req: Request, Authorization: Optional[str] = Header(None)):
-    is_premium = False
-    if Authorization and Authorization.startswith("Bearer "):
-        token = Authorization.split(" ")[1]
-        user = get_user_by_token(token)
-        if user:
-            is_premium = user["is_premium"]
-
-    if not is_premium:
-        client_ip = req.client.host
-        conn = sqlite3.connect("app.db")
-        c = conn.cursor()
-        c.execute("SELECT count FROM usage WHERE ip=?", (client_ip,))
-        row = c.fetchone()
-        
-        count = row[0] if row else 0
-        if count >= 3:
-            conn.close()
-            raise HTTPException(status_code=402, detail="Limite atteinte")
-            
-        if row:
-            c.execute("UPDATE usage SET count=count+1 WHERE ip=?", (client_ip,))
-        else:
-            c.execute("INSERT INTO usage (ip, count) VALUES (?, 1)", (client_ip,))
-        conn.commit()
-        conn.close()
-
-    text = request.text
-    if len(text) < 10:
-        raise HTTPException(status_code=400, detail="Texte trop court")
-
-    # Tentative d'analyse par l'API Gemini Officielle
-    try:
-        agent_result = await gemini_verification(text)
-        if agent_result is not None:
-            return agent_result
-    except Exception as e:
-        print(f"Erreur API Gemini: {e}. Fallback vers l'Heuristique Locale.")
-        
-    # Fallback: Utilisation exclusive de l'analyse locale en cas d'échec
-    return local_expert_analysis(text)
-
-import google.generativeai as genai
-import asyncio
-
-# Configuration de l'API Gemini avec votre clé
-genai.configure(api_key="AIzaSyA1rq5ywO1ts2DSLPLLRoVf2P15UgAwBA8")
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-async def ask_gemini(text):
-    prompt = f"""Tu es un expert en détection de contenu généré par l'IA. Analyse ce texte et détermine s'il a été écrit par une IA.
-Repère les signes typiques : vocabulaire lissé, phrases de longueur similaire, transitions artificielles ("cependant", "en conclusion"), et absence de véritable émotion humaine.
-Réponds STRICTEMENT par le mot 'OUI' (si c'est une IA) ou 'NON' (si c'est un humain). Ne justifie surtout pas ta réponse.
-Texte : '{text}'"""
-    try:
-        # Exécution asynchrone pour ne pas bloquer FastAPI
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        resp_lower = response.text.strip().lower()
-        
-        if resp_lower.startswith("oui") or "oui" in resp_lower[:10]: 
-            return True
-        if resp_lower.startswith("non") or "non" in resp_lower[:10]: 
-            return False
-            
-        print(f"Gemini réponse ambiguë: {response.text}")
-        return None
-    except Exception as e:
-        print(f"Erreur API Gemini interne: {e}")
-        return None
-
-async def gemini_verification(text: str):
-    """ Envoie le texte à l'API Gemini 1.5 Flash officielle """
-    is_ai = await ask_gemini(text)
-    
-    if is_ai is None:
-        return None
-        
-    # On récupère l'analyse locale
-    local_res = local_expert_analysis(text)
-    local_score = local_res["ai_probability"]
-    
-    # Stratégie de fusion plus intelligente
-    if is_ai:
-        # Gemini est sûr que c'est une IA. On garantit un score élevé, nuancé par l'expert local.
-        final_probability = max(80.0, (80.0 * 0.5) + (local_score * 0.5))
-    else:
-        # Gemini pense que c'est humain. Mais s'il se trompe et que l'expert local est formel ?
-        if local_score >= 70:
-            final_probability = local_score * 0.85 # On fait confiance à l'expert local si les preuves sont fortes
-        else:
-            final_probability = local_score * 0.4  # Sinon, on baisse drastiquement le score
-
-    return {
-        "ai_probability": round(final_probability, 2), 
-        "source": "API Gemini Officielle + Heuristique"
-    }
-
-import re
-
-def local_expert_analysis(text):
-    """ Système expert local avancé pour détecter l'IA sans API externe """
-    score = 15.0  # Base un peu plus haute
-    text_lower = text.lower()
-    
-    # 1. Mots-clés et tics de langage massifs de ChatGPT
-    ai_keywords = [
-        "en résumé", "en conclusion", "il est important de noter", "cependant",
-        "tout d'abord", "ensuite", "enfin", "en outre", "néanmoins",
-        "il convient de souligner", "bien que", "en définitive",
-        "dans l'ensemble", "il est crucial", "en d'autres termes",
-        "chatgpt", "intelligence artificielle", "modèle de langage",
-        "en fin de compte", "il est essentiel", "voici", "bien sûr", 
-        "absolument", "n'hésitez pas", "en effet", "par ailleurs",
-        "notons que", "il faut savoir que", "il est primordial",
-        "gardez à l'esprit", "il est à noter", "dans un monde", 
-        "à l'ère du", "naviguer", "paysage", "catalyseur", "dévoiler",
-        "explorer", "il va sans dire", "mettre en évidence", "panorama"
-    ]
-    
-    keyword_matches = sum(1 for kw in ai_keywords if kw in text_lower)
-    score += (keyword_matches * 15)  # Poids ajusté par mot clé
-    
-    # 2. Analyse structurelle (Puces, Listes, Titres)
-    # ChatGPT adore faire des listes à puces ou numérotées
-    if re.search(r':\s*\n\s*[-*]', text) or re.search(r':\s*[-*]', text):
-        score += 25
-    
-    # Détection de listes numérotées (1. 2. 3.)
-    if len(re.findall(r'(?:^|\n)\s*\d+\.\s', text)) >= 2:
-        score += 25
-        
-    # Détection de conclusion typique
-    if re.search(r'(?:^|\n)(?:En conclusion|Pour conclure|En résumé|Finalement)\s*[:,]', text, re.IGNORECASE):
-        score += 35
-
-    # 3. Analyse de la structure des phrases (Burstiness)
-    sentences = [s.strip() for s in re.split(r'[.!?]+', text) if len(s.strip()) > 5]
-    if len(sentences) > 3: # Au moins 4 phrases pour calculer une variance significative
-        lengths = [len(s.split()) for s in sentences]
-        avg_len = sum(lengths) / len(lengths)
-        variance = sum((l - avg_len) ** 2 for l in lengths) / len(lengths)
-        
-        # Très faible variance = IA (rythme très mécanique)
-        if variance < 15:
-            score += 35
-        elif variance < 30:
-            score += 20
-        elif variance > 90:
-            score -= 20  # Humain (rythme chaotique)
-            
-        # Phrases très longues, typique de l'IA académique
-        if avg_len > 22:
-            score += 15
-            
-    # 4. Diversité lexicale
-    words = [w for w in re.findall(r'\b\w+\b', text_lower) if len(w) > 3]
-    if len(words) > 15:
-        unique_words = len(set(words))
-        lexical_diversity = unique_words / len(words)
-        
-        if lexical_diversity < 0.55:
-            score += 20
-            
-    # L'IA utilise très peu les points d'exclamation sauf si on lui demande
-    if len(sentences) > 4 and '!' not in text:
-        score += 10
-            
-    # 5. Ajustements finaux
-    score = max(1.0, min(99.0, score))
-    
-    # Aléa léger pour le côté "vivant"
-    hash_val = sum(ord(c) for c in text) % 5 - 2
-    final_score = max(1.0, min(99.0, score + hash_val))
-    
-    return {"ai_probability": round(final_score, 2), "source": "Heuristique Experte (Local)"}
+# ==========================================
+# PAGES STATIQUES
+# ==========================================
 
 @app.get("/checkout-simulation.html")
 async def read_checkout_simulation():
@@ -515,7 +625,6 @@ async def read_checkout_simulation():
 async def read_payment_success():
     return FileResponse("payment-success.html")
 
-# Servir les fichiers statiques (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="."), name="static")
 
 @app.get("/")
@@ -524,6 +633,5 @@ async def read_index():
 
 if __name__ == "__main__":
     import uvicorn
-    # Lancement du serveur sur le port 8000
-    print("Démarrage du serveur VerifIA sur http://localhost:8000")
+    print("Démarrage de VerifIA sur http://localhost:8000")
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)

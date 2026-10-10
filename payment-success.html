@@ -178,12 +178,20 @@
         </div>
         
         <h1>Merci pour votre achat !</h1>
-        <p>Votre compte a été surclassé avec succès. Vous bénéficiez désormais d'un accès illimité à l'analyse neuronale de VerifIA.</p>
+        <p id="successMessage">Votre compte a été crédité avec succès. Vous bénéficiez désormais de vos nouveaux tests d'analyse neuronale sur VerifIA.</p>
         
         <a href="/" class="btn-continue">
-            Commencer à l'utiliser <i data-lucide="arrow-right"></i>
+            Lancer une analyse <i data-lucide="arrow-right"></i>
         </a>
     </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const tests = urlParams.get('tests');
+        if (tests) {
+            document.getElementById('successMessage').innerHTML = `Félicitations ! <strong>+${tests} tests</strong> ont été ajoutés avec succès à votre compte. Vous pouvez les utiliser immédiatement.`;
+        }
+    </script>
 
     <script>
         lucide.createIcons();

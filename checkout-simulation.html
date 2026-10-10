@@ -325,15 +325,19 @@
         const payLoader = document.getElementById('payLoader');
         const payBtn = document.getElementById('payBtn');
 
-        let amount = "4,99 €";
-        if (plan === 'annual') {
-            planDesc.textContent = "VerifIA - Abonnement Annuel Pro";
-            priceVal.textContent = "29,99 €";
-            payText.textContent = "Payer 29,99 €";
+        let amount = "1,00 €";
+        if (plan === 'pack_10') {
+            planDesc.textContent = "VerifIA - Pack Économique (10 Tests)";
+            priceVal.textContent = "4,00 €";
+            payText.textContent = "Payer 4,00 €";
+        } else if (plan === 'pack_5') {
+            planDesc.textContent = "VerifIA - Pack Populaire (5 Tests)";
+            priceVal.textContent = "2,00 €";
+            payText.textContent = "Payer 2,00 €";
         } else {
-            planDesc.textContent = "VerifIA - Abonnement Mensuel Pro";
-            priceVal.textContent = "4,99 €";
-            payText.textContent = "Payer 4,99 €";
+            planDesc.textContent = "VerifIA - Pack Découverte (2 Tests)";
+            priceVal.textContent = "1,00 €";
+            payText.textContent = "Payer 1,00 €";
         }
 
         // Format card inputs

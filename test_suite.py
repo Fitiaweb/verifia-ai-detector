@@ -54,13 +54,33 @@ DATASET = DATASET * 1
 
 def run_tests():
     print("Démarrage de la suite de tests...")
+    
+    # Créer ou connecter un utilisateur de test avec crédits
+    session = requests.Session()
+    headers = {}
+    try:
+        reg_res = session.post("http://127.0.0.1:8000/api/auth/register", json={
+            "first_name": "Test",
+            "last_name": "Runner",
+            "birth_date": "2000-01-01",
+            "email": f"testrunner_{int(time.time())}@test.com",
+            "password": "Password123!"
+        })
+        if reg_res.status_code == 200:
+            token = reg_res.json().get("token")
+            headers["Authorization"] = f"Bearer {token}"
+            # Créditer 20 tests pour le run
+            session.get(f"http://127.0.0.1:8000/api/payments/confirm?email={reg_res.json().get('email')}&plan=pack_10&order_id=test_setup")
+    except Exception as e:
+        print(f"[TEST SETUP NOTE] Connexion locale directe: {e}")
+
     correct = 0
     total = len(DATASET)
     
     for i, item in enumerate(DATASET):
         print(f"\nTest {i+1}/{total} - Type attendu : {item['type']}")
         try:
-            response = requests.post(API_URL, json={"text": item["text"]}, timeout=15)
+            response = requests.post(API_URL, json={"text": item["text"]}, headers=headers, timeout=15)
             if response.status_code == 200:
                 data = response.json()
                 score = data.get("ai_probability", 0)

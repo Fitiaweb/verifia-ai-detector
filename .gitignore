@@ -22,6 +22,7 @@ app.db
 # Environments
 .env
 .env.*
+!.env.example
 
 # IDEs
 .vscode/

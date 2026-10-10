@@ -1,4 +1,4 @@
-// Initialize Lucide icons
+// Initialisation des icônes Lucide
 lucide.createIcons();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,32 +17,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiSentencesStat = document.getElementById('aiSentences');
     const readabilityStat = document.getElementById('readability');
 
-    // Input handling
+    // Éléments d'affichage des crédits
+    const navCreditsPill = document.getElementById('navCreditsPill');
+    const navCreditsText = document.getElementById('navCreditsText');
+    const inputCreditsText = document.getElementById('inputCreditsText');
+
+    let currentCredits = 3;
+
+    function updateCreditsUI(count, isLoggedIn = false) {
+        currentCredits = count;
+        const label = count === 1 ? '1 test' : `${count} tests`;
+        const qualifier = isLoggedIn ? 'disponible' : 'gratuit';
+        const qualifierPlural = isLoggedIn ? 'disponibles' : 'gratuits';
+        const suffix = count > 1 ? qualifierPlural : qualifier;
+
+        if (navCreditsText) {
+            navCreditsText.textContent = `${label} ${suffix}`;
+        }
+        if (inputCreditsText) {
+            if (count > 0) {
+                inputCreditsText.textContent = `${label} ${suffix}`;
+            } else {
+                inputCreditsText.innerHTML = `<span style="color: var(--danger); font-weight: 600;">0 test restant - Cliquez pour recharger</span>`;
+            }
+        }
+
+        if (navCreditsPill) {
+            if (count <= 0) {
+                navCreditsPill.classList.add('zero');
+            } else {
+                navCreditsPill.classList.remove('zero');
+            }
+        }
+    }
+
+    // Récupérer le nombre de crédits restants dès le chargement
+    async function fetchCredits() {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        try {
+            const res = await fetch('/api/credits', { headers });
+            if (res.ok) {
+                const data = await res.json();
+                updateCreditsUI(data.tests_remaining, data.is_logged_in);
+            }
+        } catch (e) {
+            console.error("Erreur chargement crédits:", e);
+        }
+    }
+
+    // Gestion de la saisie dans le textarea
     textInput.addEventListener('input', () => {
         const text = textInput.value.trim();
         const words = text ? text.split(/\s+/).length : 0;
         
         wordCount.textContent = `${words} mot${words > 1 ? 's' : ''}`;
         
-        if (words >= 10) {
+        if (words >= 5) {
             analyzeBtn.removeAttribute('disabled');
         } else {
             analyzeBtn.setAttribute('disabled', 'true');
         }
     });
 
-    // Mock API Analysis
+    // Clic sur l'indicateur de crédits pour recharger si à 0
+    if (navCreditsPill) {
+        navCreditsPill.addEventListener('click', () => {
+            if (currentCredits <= 0) {
+                showModal('paywallModal');
+            } else {
+                const pricingEl = document.getElementById('pricing');
+                if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
+
+    // Lancement de l'analyse
     analyzeBtn.addEventListener('click', () => {
         const text = textInput.value.trim();
         if (!text) return;
 
-        // Hide input footer, show loading
+        // Si l'utilisateur est déjà à 0 crédit, on ouvre directement le paywall
+        if (currentCredits <= 0) {
+            showModal('paywallModal');
+            return;
+        }
+
+        // Masquer le pied de page et afficher le loader
         analyzeBtn.parentElement.classList.add('hidden');
         textInput.disabled = true;
         resultDashboard.classList.add('hidden');
         loadingState.classList.remove('hidden');
 
-        // Appel à la véritable API Backend
         const token = localStorage.getItem('token');
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -55,9 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(async response => {
             const data = await response.json();
             if (response.status === 402) {
+                updateCreditsUI(0);
                 showModal('paywallModal');
                 resetBtn.click();
-                return;
+                return null;
             }
             if (!response.ok) {
                 throw new Error(data.detail || "Erreur serveur");
@@ -66,12 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             if (!data) return;
-            if (data.status_code === 503) {
-                alert(data.error);
-                resetBtn.click();
-            } else {
-                displayAnalysis(text, data.ai_probability, data.source);
+            if (data.tests_remaining !== undefined) {
+                updateCreditsUI(data.tests_remaining, data.is_logged_in);
             }
+            displayAnalysis(text, data.ai_probability, data.source);
         })
         .catch(error => {
             console.error('Erreur API:', error);
@@ -80,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Reset
+    // Réinitialisation de l'analyse
     resetBtn.addEventListener('click', () => {
         textInput.value = '';
         textInput.disabled = false;
@@ -93,37 +160,32 @@ document.addEventListener('DOMContentLoaded', () => {
         textInput.focus();
     });
 
-    function displayAnalysis(text, fakeAiProbability, source) {
-        // Hide loading, show results
+    function displayAnalysis(text, aiProbability, source) {
         loadingState.classList.add('hidden');
         resultDashboard.classList.remove('hidden');
-        
-        console.log("Source de l'analyse:", source);
 
-        animateScore(fakeAiProbability);
+        animateScore(aiProbability);
         
-        // Update stats
         const totalSentences = text.split(/[.!?]+/).length - 1 || 1;
-        const aiSentences = Math.round((fakeAiProbability / 100) * totalSentences);
+        const aiSentences = Math.round((aiProbability / 100) * totalSentences);
         
         aiSentencesStat.textContent = `${aiSentences} / ${totalSentences}`;
         
-        if (fakeAiProbability > 70) {
+        if (aiProbability > 75) {
             readabilityStat.textContent = 'Robotique';
-        } else if (fakeAiProbability > 40) {
-            readabilityStat.textContent = 'Complexe';
+        } else if (aiProbability > 45) {
+            readabilityStat.textContent = 'Mixte';
         } else {
-            readabilityStat.textContent = 'Naturelle';
+            readabilityStat.textContent = 'Humaine';
         }
     }
 
     function animateScore(targetScore) {
         let currentScore = 0;
-        const duration = 1500; // 1.5s
+        const duration = 1400;
         const interval = 20;
         const step = targetScore / (duration / interval);
 
-        // Update stroke color based on score
         let strokeColor = 'var(--success)';
         if (targetScore > 75) strokeColor = 'var(--danger)';
         else if (targetScore > 40) strokeColor = 'var(--warning)';
@@ -131,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreCirclePath.style.stroke = strokeColor;
         
         if (targetScore > 75) scoreLabel.textContent = "Probabilité d'IA élevée";
-        else if (targetScore > 40) scoreLabel.textContent = "Mix Humain/IA possible";
+        else if (targetScore > 40) scoreLabel.textContent = "Mixte (IA / Humain)";
         else scoreLabel.textContent = "Texte probablement Humain";
 
         const timer = setInterval(() => {
@@ -141,13 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(timer);
             }
             
-            // Format circle path
             scoreCirclePath.setAttribute('stroke-dasharray', `${currentScore}, 100`);
             scoreText.textContent = `${Math.round(currentScore)}%`;
         }, interval);
     }
 
-    // Modal & Auth Logic
+    // ==========================================
+    // GESTION DES MODALES ET AUTHENTIFICATION
+    // ==========================================
     const modalOverlay = document.getElementById('modalOverlay');
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
@@ -155,19 +218,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const paywallModal = document.getElementById('paywallModal');
     
     const loginBtnNav = document.getElementById('loginBtnNav');
-    const paywallLoginBtn = document.getElementById('paywallLoginBtn');
-    
-    // Switch links
     const toRegisterLink = document.getElementById('toRegisterLink');
     const toLoginLink = document.getElementById('toLoginLink');
+    const paywallLoginLink = document.getElementById('paywallLoginLink');
     
-    // Login form elements
     const loginEmail = document.getElementById('loginEmail');
     const loginPassword = document.getElementById('loginPassword');
     const loginSubmitBtn = document.getElementById('loginSubmitBtn');
     const loginError = document.getElementById('loginError');
     
-    // Register form elements
     const regFirstName = document.getElementById('regFirstName');
     const regLastName = document.getElementById('regLastName');
     const regBirthDate = document.getElementById('regBirthDate');
@@ -178,12 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerSubmitBtn = document.getElementById('registerSubmitBtn');
     const registerError = document.getElementById('registerError');
     
-    // Profile elements
     const logoutBtn = document.getElementById('logoutBtn');
-    
-    // Pay elements
-    const payBtn = document.getElementById('payBtn');
-    const paywallError = document.getElementById('paywallError');
+    const profileBuyMoreBtn = document.getElementById('profileBuyMoreBtn');
 
     function hideAllModals() {
         modalOverlay.classList.add('hidden');
@@ -192,15 +247,16 @@ document.addEventListener('DOMContentLoaded', () => {
         profileModal.classList.add('hidden');
         paywallModal.classList.add('hidden');
         
-        loginError.classList.add('hidden');
-        registerError.classList.add('hidden');
-        paywallError.classList.add('hidden');
+        if (loginError) loginError.classList.add('hidden');
+        if (registerError) registerError.classList.add('hidden');
     }
 
     function showModal(modalId) {
         hideAllModals();
         modalOverlay.classList.remove('hidden');
-        document.getElementById(modalId).classList.remove('hidden');
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.remove('hidden');
+        lucide.createIcons();
     }
 
     window.showModal = showModal;
@@ -209,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', hideAllModals);
     });
 
-    // Link triggers
     if (toRegisterLink) {
         toRegisterLink.addEventListener('click', (e) => {
             e.preventDefault();
@@ -224,7 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal navigation trigger
+    if (paywallLoginLink) {
+        paywallLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal('loginModal');
+        });
+    }
+
     if (loginBtnNav) {
         loginBtnNav.addEventListener('click', (e) => {
             e.preventDefault();
@@ -237,38 +298,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (paywallLoginBtn) {
-        paywallLoginBtn.addEventListener('click', () => {
-            showModal('loginModal');
-        });
-    }
-
-    // Password strength visual indicator
+    // Force du mot de passe
     if (regPassword) {
         regPassword.addEventListener('input', () => {
             const val = regPassword.value;
             let score = 0;
-            let feedback = "";
-            
-            if (val.length >= 8) score += 20;
+            if (val.length >= 8) score += 40;
             if (/[A-Z]/.test(val)) score += 20;
-            if (/[a-z]/.test(val)) score += 20;
             if (/\d/.test(val)) score += 20;
             if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) score += 20;
             
             let color = 'var(--danger)';
+            let feedback = "Trop court";
             if (val.length < 8) {
-                feedback = "Mot de passe trop court (min 8)";
+                feedback = "Trop court (min 8 car.)";
                 color = 'var(--danger)';
-                score = Math.min(score, 15);
             } else if (score < 60) {
-                feedback = "Faible (ajoutez majuscules/chiffres)";
-                color = 'var(--danger)';
-            } else if (score < 100) {
-                feedback = "Moyen (ajoutez un caractère spécial)";
+                feedback = "Moyen";
                 color = 'var(--warning)';
             } else {
-                feedback = "Fort (Sécurisé)";
+                feedback = "Fort & Sécurisé";
                 color = 'var(--success)';
             }
             
@@ -279,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Connect user (Login)
+    // Connexion
     if (loginSubmitBtn) {
         loginSubmitBtn.addEventListener('click', async () => {
             const email = loginEmail.value.trim();
@@ -301,22 +350,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({email, password})
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "Erreur lors de la connexion.");
+                if (!res.ok) throw new Error(data.detail || "Erreur de connexion.");
                 
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('is_premium', data.is_premium);
                 localStorage.setItem('first_name', data.first_name);
+                localStorage.setItem('email', data.email);
                 
                 hideAllModals();
                 updateNavbarUI();
+                updateCreditsUI(data.credits, true);
                 
-                // Subscription pending logic
                 const pendingPlan = sessionStorage.getItem('pending_plan');
                 if (pendingPlan) {
                     sessionStorage.removeItem('pending_plan');
-                    startSubscriptionFlow(pendingPlan);
-                } else {
-                    alert(`Ravi de vous revoir, ${data.first_name} !`);
+                    startPackPurchase(pendingPlan);
                 }
             } catch (e) {
                 loginError.textContent = e.message;
@@ -327,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Register user
+    // Inscription
     if (registerSubmitBtn) {
         registerSubmitBtn.addEventListener('click', async () => {
             const first_name = regFirstName.value.trim();
@@ -355,18 +402,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error(data.detail || "Erreur de création de compte.");
                 
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('is_premium', data.is_premium);
                 localStorage.setItem('first_name', data.first_name);
+                localStorage.setItem('email', data.email);
                 
                 hideAllModals();
                 updateNavbarUI();
+                updateCreditsUI(data.credits, true);
                 
                 const pendingPlan = sessionStorage.getItem('pending_plan');
                 if (pendingPlan) {
                     sessionStorage.removeItem('pending_plan');
-                    startSubscriptionFlow(pendingPlan);
+                    startPackPurchase(pendingPlan);
                 } else {
-                    alert(`Bienvenue sur VerifIA, ${first_name} !`);
+                    alert(`Bienvenue ${first_name} ! Vos 3 tests gratuits sont prêts.`);
                 }
             } catch (e) {
                 registerError.textContent = e.message;
@@ -377,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Profile Detail Modal Loader
+    // Charger et afficher le profil
     async function loadAndShowProfile() {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -385,171 +433,112 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/api/auth/profile', {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
                 const profile = await res.json();
-                localStorage.setItem('is_premium', profile.is_premium);
-                localStorage.setItem('first_name', profile.first_name);
-                
                 document.getElementById('profFullName').textContent = `${profile.first_name} ${profile.last_name}`;
-                
-                let formattedDate = profile.birth_date;
-                try {
-                    const dateParts = profile.birth_date.split('-');
-                    if (dateParts.length === 3) {
-                        formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                    }
-                } catch(e) {}
-                document.getElementById('profBirthDate').textContent = formattedDate;
                 document.getElementById('profEmail').textContent = profile.email;
+                const creds = profile.credits !== undefined ? profile.credits : 0;
+                document.getElementById('profCredits').textContent = `${creds} test${creds > 1 ? 's' : ''}`;
                 
-                if (profile.is_premium) {
-                    document.getElementById('profPlan').innerHTML = `Membre Pro <span class="badge-pro" style="margin-left: 10px;"><i data-lucide="sparkles" style="width: 10px; height: 10px;"></i>Pro</span>`;
-                } else {
-                    document.getElementById('profPlan').textContent = "Compte Standard (Gratuit)";
-                }
-                
-                lucide.createIcons();
                 showModal('profileModal');
             } else {
                 localStorage.removeItem('token');
-                localStorage.removeItem('is_premium');
-                localStorage.removeItem('first_name');
                 updateNavbarUI();
                 showModal('loginModal');
             }
         } catch (e) {
-            console.error("Erreur de chargement profil:", e);
-            alert("Erreur de connexion lors du chargement du profil.");
+            console.error("Erreur profil:", e);
         }
     }
 
-    // Logout Action
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('token');
-            localStorage.removeItem('is_premium');
             localStorage.removeItem('first_name');
+            localStorage.removeItem('email');
             hideAllModals();
             updateNavbarUI();
-            alert("Déconnexion réussie !");
+            fetchCredits();
         });
     }
 
-    // Helper pour mettre à jour l'interface utilisateur de la navbar
+    if (profileBuyMoreBtn) {
+        profileBuyMoreBtn.addEventListener('click', () => {
+            hideAllModals();
+            const pricingEl = document.getElementById('pricing');
+            if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+
     function updateNavbarUI() {
         if (!loginBtnNav) return;
-        
         const token = localStorage.getItem('token');
-        const isPremium = localStorage.getItem('is_premium') === 'true';
         const firstName = localStorage.getItem('first_name');
         
         if (token) {
-            let label = firstName ? `Bonjour, ${firstName}` : `Mon Compte`;
-            if (isPremium) {
-                loginBtnNav.innerHTML = `${label} <span class="badge-pro"><i data-lucide="sparkles" style="width: 10px; height: 10px;"></i>Pro</span>`;
-            } else {
-                loginBtnNav.innerHTML = `${label}`;
-            }
+            loginBtnNav.textContent = firstName ? `Bonjour, ${firstName}` : `Mon Compte`;
         } else {
             loginBtnNav.textContent = "Connexion";
         }
         lucide.createIcons();
     }
 
-    // Lancer le flux d'abonnement Stripe (Création de session backend + Redirection)
-    async function startSubscriptionFlow(plan) {
+    // ==========================================
+    // ACHAT DE PACKS DE TESTS
+    // ==========================================
+    async function startPackPurchase(plan) {
         const token = localStorage.getItem('token');
-        if (!token) {
-            sessionStorage.setItem('pending_plan', plan);
-            showModal('loginModal');
-            return;
+        let email = localStorage.getItem('email') || "";
+
+        // Si l'utilisateur n'est pas connecté, demander son email pour lui attribuer ses tests
+        if (!token && !email) {
+            email = prompt("Veuillez saisir votre adresse e-mail pour recevoir vos tests :");
+            if (!email || !email.includes('@')) {
+                alert("Une adresse e-mail valide est requise pour créditer vos tests.");
+                return;
+            }
+            localStorage.setItem('email', email);
         }
 
         try {
-            // Identifier le bouton de tarification
-            const btn = document.querySelector(`.plan-btn[data-plan="${plan}"]`) || payBtn;
-            let originalHTML = "";
-            if (btn) {
-                originalHTML = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = `<span class="loader" style="width: 16px; height: 16px; display: inline-block; margin-right: 8px;"></span> Redirection...`;
-            }
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const res = await fetch('/api/payments/create-session', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ plan })
+                headers: headers,
+                body: JSON.stringify({ plan: plan, email: email })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || "Erreur de création de commande.");
             
-            // Rediriger le client vers le checkout (Stripe)
+            // Rediriger vers Stripe ou la simulation interactive
             window.location.href = data.checkout_url;
         } catch (e) {
             alert(e.message || "Erreur lors du traitement du paiement.");
-            console.error("Erreur de paiement:", e);
-            
-            // Restaurer le bouton
-            const btn = document.querySelector(`.plan-btn[data-plan="${plan}"]`) || payBtn;
-            if (btn && originalHTML) {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-            }
+            console.error("Erreur commande:", e);
         }
     }
 
-    // Relier les boutons des cartes de tarification
+    // Lier les boutons de la grille tarifaire
     document.querySelectorAll('.plan-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const plan = e.currentTarget.getAttribute('data-plan');
-            startSubscriptionFlow(plan);
+            startPackPurchase(plan);
         });
     });
 
-    if (payBtn) {
-        payBtn.addEventListener('click', async () => {
-            startSubscriptionFlow('annual');
+    // Lier les choix de pack dans la modale de paywall
+    document.querySelectorAll('.pack-choice-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const plan = e.currentTarget.getAttribute('data-plan');
+            startPackPurchase(plan);
         });
-    }
+    });
 
-    // Vérifier l'état de l'authentification et du premium au chargement de la page
-    async function checkAuthStateOnLoad() {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            updateNavbarUI();
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/auth/profile', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (res.ok) {
-                const profile = await res.json();
-                localStorage.setItem('is_premium', profile.is_premium);
-                localStorage.setItem('first_name', profile.first_name);
-            } else {
-                // Token invalide ou expiré
-                localStorage.removeItem('token');
-                localStorage.removeItem('is_premium');
-                localStorage.removeItem('first_name');
-            }
-        } catch (e) {
-            console.error("Erreur de rafraîchissement profil:", e);
-        } finally {
-            updateNavbarUI();
-        }
-    }
-
-    checkAuthStateOnLoad();
+    // Initialisation au chargement
+    updateNavbarUI();
+    fetchCredits();
 });

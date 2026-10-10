@@ -1,94 +1,61 @@
-# 🛡️ VerifIA - Détecteur de Contenu IA (SaaS complet)
+# 🛡️ VerifIA - Détecteur de Contenu IA (SaaS Pay-As-You-Go)
 
-**VerifIA** est un outil SaaS moderne, haut de gamme et performant, conçu pour analyser instantanément n'importe quel texte afin de détecter l'utilisation de modèles d'intelligence artificielle (comme ChatGPT, Claude, ou Gemini). 
-
-L'application combine une **heuristique experte locale** (burstiness, diversité lexicale, tics linguistiques de l'IA) et le modèle officiel de pointe **Gemini 1.5 Flash** (via API) pour offrir une précision inégalée.
+**VerifIA** est un outil SaaS moderne conçu pour analyser et détecter l'utilisation de modèles d'intelligence artificielle (ChatGPT, GPT-4, Claude 3.5, Gemini) dans les textes.
 
 ---
 
-## 💎 Modèle Économique & Tarifs Stratégiques
+## 💎 Modèle Économique & Tarification (Pay-As-You-Go)
 
-Pour attirer les utilisateurs et maximiser les ventes, VerifIA propose une grille tarifaire très attractive :
-*   **Offre Découverte (Gratuit)** : 3 analyses offertes (sans carte requise) pour tester la qualité de notre service avec l'expert local.
-*   **Plan Pro Mensuel (4,99 € / mois)** : Analyses 100% illimitées via l'API neuronale Gemini, pas de limite de mots, sans aucun engagement. *Le prix d'un café par mois.*
-*   **Plan Pro Annuel (29,99 € / an)** : Tout le contenu illimité et le support prioritaire pour seulement **2,50 € / mois** (soit **50 % d'économie** par rapport au plan mensuel). *Paiement unique, hautement incitatif.*
+* 🎁 **Essai Gratuit (3 Tests offerts)** : 3 analyses complètes offertes par utilisateur/IP, sans carte bancaire.
+* ⚡ **Pack Découverte (1,00 €)** : +2 tests supplémentaires (0,50€ / test).
+* ⭐ **Pack Populaire (2,00 €)** : +5 tests supplémentaires (0,40€ / test - Économie de 20%).
+* 🔥 **Pack Économique (4,00 €)** : +10 tests supplémentaires (0,40€ / test - Idéal pour longs devoirs / mémoires).
 
----
-
-## 💳 Intégration Revolut Merchant (Double Mode)
-
-VerifIA dispose d'une intégration complète avec la passerelle de paiement sécurisée **Revolut Merchant Gateway** :
-
-1.  **Mode Réel (Production / Sandbox)** : Génère de véritables sessions de paiement Revolut conformes aux normes PCI-DSS, supportant les cartes de crédit, Apple Pay, Google Pay et Revolut Pay directement sur les pages hébergées de Revolut.
-2.  **Mode Simulation Interactive** : Si aucune clé Revolut n'est configurée, l'application bascule en mode simulation avec une superbe interface de paiement fictive Revolut. Cela permet de tester de bout en bout l'expérience utilisateur et l'activation premium en local.
+*Aucun abonnement récurrent ni prélèvement automatique : les crédits sont utilisables sans limite de temps.*
 
 ---
 
-## 🛠️ Lancement Local et Test Rapide
+## 💳 Système de Paiement (Double Mode)
 
-### 1. Prérequis
-Installez les dépendances Python nécessaires (FastAPI, Uvicorn, Google Generative AI) :
-```bash
-pip install fastapi uvicorn google-generativeai pydantic
+1. **Mode Simulation Interactive** : Prêt à l'emploi sans configuration. Si aucune clé Stripe n'est renseignée, le parcours d'achat redirige vers une interface interactive de simulation avec validation des crédits.
+2. **Mode Réel Stripe Checkout** : Renseignez simplement `STRIPE_API_KEY` dans votre fichier `.env` pour activer les paiements sécurisés par Carte Bancaire, Apple Pay et Google Pay.
+
+---
+
+## ⚙️ Configuration & Démarrage Local
+
+### 1. Variables d'environnement
+Créez un fichier `.env` à la racine (ou copiez `.env.example`) :
+```env
+# Clé d'API Google Gemini (Gratuite sur https://aistudio.google.com/app/apikey)
+GEMINI_API_KEY="votre_cle_gemini"
+
+# Clé secrète Stripe (Optionnelle, laisser vide pour le mode simulation)
+STRIPE_API_KEY=""
 ```
 
 ### 2. Démarrer le serveur
-Exécutez simplement le script `server.py` :
 ```bash
 python server.py
 ```
-Le serveur démarrera sur **`http://localhost:8000`**. Ouvrez ce lien dans votre navigateur.
+L'application démarre sur `http://localhost:8000`.
 
 ---
 
-## 🚀 Configuration en Mode Production (Revolut & Gemini)
+## 🌐 Déploiement : Vercel vs Render / Railway
 
-Pour passer VerifIA en conditions réelles, configurez simplement vos variables d'environnement dans un fichier `.env` ou sur votre hébergeur :
-
-```env
-# Clé d'API officielle de Gemini
-GEMINI_API_KEY="VOTRE_CLE_API_GEMINI"
-
-# Vos identifiants Revolut Business (Merchant Portal)
-REVOLUT_MERCHANT_TOKEN="VOTRE_CLE_API_REVOLUT"
-REVOLUT_SANDBOX="False"
-```
+### Est-ce une bonne idée d'héberger sur Vercel ?
+* **Non pour le backend SQLite** : Vercel est une plateforme conçue pour le frontend (Next.js/React). Ses fonctions serverless sont **stateless (sans état persistant)**. Votre fichier de base de données `app.db` (utilisateurs, crédits) serait effacé ou verrouillé à chaque requête.
+* **Recommandation optimale : Render.com ou Railway.app**
+  * Ces plateformes font tourner le serveur Python FastAPI en continu.
+  * Votre base de données SQLite ou PostgreSQL gratuite reste active en permanence.
+  * Déploiement 100% gratuit en connectant votre dépôt GitHub.
 
 ---
 
-## 🌐 Hébergement et Déploiement Public
+## 🔍 Comment être visible sur Google pour "IA detector for free" ?
 
-Le projet est livré clé en main, prêt pour la production.
-
-### 1. Héberger le code sur GitHub (Findable depuis internet)
-Pour rendre le projet trouvable sur internet, créez un dépôt vide sur votre compte GitHub (nom recommandé : `verifia-ai-detector`) puis exécutez ces commandes :
-```bash
-# Ajouter l'adresse de votre dépôt GitHub distant
-git remote add origin https://github.com/VOTRE_PSEUDO/verifia-ai-detector.git
-
-# Renommer la branche principale en main
-git branch -M main
-
-# Pousser votre projet sur GitHub
-git push -u origin main
-```
-
-### 2. Déployer l'application en ligne gratuitement
-Comme le projet comporte un serveur backend Python (FastAPI) et une base de données locale (SQLite), il ne peut pas être hébergé sur GitHub Pages (qui ne supporte que le HTML statique). En revanche, vous pouvez le déployer en **5 minutes et 100% gratuitement** sur l'un de ces hébergeurs :
-
-#### Option A : Render.com (Recommandé & Ultra-simple)
-1. Créez un compte gratuit sur [Render](https://render.com/).
-2. Cliquez sur **New +** puis **Web Service**.
-3. Connectez votre compte GitHub et sélectionnez votre dépôt `verifia-ai-detector`.
-4. Configurez les informations suivantes :
-   *   **Runtime** : `Python`
-   *   **Build Command** : `pip install -r requirements.txt` (créez un fichier `requirements.txt` contenant `fastapi`, `uvicorn`, `google-generativeai`, `pydantic`).
-   *   **Start Command** : `uvicorn server:app --host 0.0.0.0 --port $PORT`
-5. Ajoutez vos variables d'environnement dans l'onglet **Environment** (`GEMINI_API_KEY`, etc.).
-6. Cliquez sur **Deploy**. Votre site sera en ligne avec une adresse gratuite du type `https://verifia-ai-detector.onrender.com` !
-
-#### Option B : Railway.app
-1. Créez un compte sur [Railway](https://railway.app/).
-2. Cliquez sur **New Project** -> **Deploy from GitHub repo**.
-3. Choisissez le dépôt `verifia-ai-detector`.
-4. Ajoutez vos variables d'environnement dans Railway. Le déploiement s'effectue automatiquement en arrière-plan à chaque mise à jour sur GitHub !
+1. **Acheter un Nom de Domaine Personnalisé** (ex: `verif-ia.com` ou `detecteur-ia-gratuit.fr` à ~10€/an). Google favorise massivement les vrais noms de domaine par rapport aux sous-domaines gratuits (`.vercel.app` ou `.onrender.com`).
+2. **Balises SEO & Schema Structuré** : `index.html` est déjà configuré avec les métadonnées OpenGraph, Twitter Cards et le balisage structuré `SoftwareApplication` de Schema.org.
+3. **Section FAQ intégrée** : Une section FAQ ciblée sur les requêtes fréquentes ("Puis-je tester gratuitement ?", "Détecte-t-il ChatGPT ?") est incluse pour capter les Featured Snippets de Google.
+4. **Google Search Console** : Dès que votre site est en ligne avec son nom de domaine, soumettez l'URL sur [Google Search Console](https://search.google.com/search-console) pour demander l'indexation immédiate.
