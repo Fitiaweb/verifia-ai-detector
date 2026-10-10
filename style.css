@@ -549,20 +549,20 @@ textarea::placeholder {
 }
 
 /* ==========================================================================
-   PRICING SECTION (STEEP MINIMALIST EDITORIAL & PEACH ACCENT CARD)
+   PRICING SECTION (HORIZONTAL LEDGER & PEACH ACCENT ROW — NO VERTICAL BOXES)
    ========================================================================== */
 .pricing-section {
     width: 100%;
-    margin: 5.5rem 0 3rem;
+    margin: 5.5rem 0 3.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3rem;
+    gap: 1.5rem;
 }
 
 .pricing-header {
     text-align: center;
-    max-width: 640px;
+    max-width: 660px;
 }
 
 .pricing-header h2 {
@@ -581,146 +581,184 @@ textarea::placeholder {
     line-height: 1.6;
 }
 
-.pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.75rem;
-    width: 100%;
-    max-width: 1020px;
+/* Barre de Garanties Communes (anti-répétition de checkmarks) */
+.pricing-guarantees {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin: 0.25rem 0 1rem;
+    color: var(--color-slate-gray);
+    font-size: 0.88rem;
+    font-weight: 500;
 }
 
-/* Base Pricing Card (24px radius, hairline border) */
-.pricing-card {
-    background: var(--color-paper-white);
-    border: var(--border-hairline);
-    border-radius: var(--radius-cards);
-    padding: 2.25rem 1.75rem;
-    box-shadow: var(--shadow-card);
+.guarantee-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.guarantee-item i {
+    width: 16px;
+    height: 16px;
+    color: var(--color-ink-black);
+}
+
+.guarantee-dot {
+    opacity: 0.35;
+}
+
+/* Conteneur Horizontal des Tarifs (Pas de boîtes verticales / cases) */
+.pricing-rows-container {
+    width: 100%;
+    max-width: 920px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    position: relative;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    gap: 0.85rem;
 }
 
-.pricing-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 20px rgba(23, 25, 28, 0.06);
+/* Rangée Horizontale */
+.pricing-row {
+    background: var(--color-fog-white);
+    border: 1px solid rgba(23, 25, 28, 0.08);
+    border-radius: 20px;
+    padding: 1.4rem 1.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.75rem;
+    transition: all 0.22s ease;
 }
 
-/* --- THE SIGNATURE PEACH ACCENT CARD (STEEP SPECIFICATION) ---
-   Single warm peach highlight surface (#fbe1d1) paired with Sienna Brown (#5d2a1a).
-   Used at most once per page for editorial emphasis. */
-.pricing-card.popular {
+.pricing-row:hover {
+    background: var(--color-paper-white);
+    border-color: rgba(23, 25, 28, 0.2);
+    box-shadow: 0 4px 20px rgba(23, 25, 28, 0.04);
+    transform: translateY(-1px);
+}
+
+/* Rangée Populaire (Seule surface chromatique Blush Peach) */
+.pricing-row.popular {
     background: var(--color-blush-peach);
-    border: 1px solid rgba(93, 42, 26, 0.15);
-    box-shadow: 0 8px 30px rgba(93, 42, 26, 0.08);
+    border: 1px solid rgba(93, 42, 26, 0.2);
+    box-shadow: 0 4px 24px rgba(93, 42, 26, 0.06);
 }
 
-.pricing-card.popular::after {
-    content: '⭐ LE PLUS POPULAIRE';
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    background: rgba(93, 42, 26, 0.1);
-    color: var(--color-sienna-brown);
-    font-size: 0.68rem;
+.pricing-row.popular:hover {
+    background: #f7d5c2;
+    border-color: rgba(93, 42, 26, 0.35);
+    box-shadow: 0 6px 28px rgba(93, 42, 26, 0.1);
+}
+
+/* Partie Gauche : Titre, badge, description */
+.row-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.row-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.row-name {
+    font-size: 1.15rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    padding: 4px 10px;
-    border-radius: var(--radius-pills);
-    border: 1px solid rgba(93, 42, 26, 0.15);
+    color: var(--color-ink-black);
+    letter-spacing: -0.01em;
 }
 
-.plan-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-slate-gray);
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.pricing-card.popular .plan-name {
+.pricing-row.popular .row-name {
     color: var(--color-sienna-brown);
-    opacity: 0.85;
 }
 
-.plan-price {
+.row-badge {
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-pills);
+    background: var(--color-mist-gray);
+    color: var(--color-slate-gray);
+}
+
+.row-badge.highlight {
+    background: rgba(93, 42, 26, 0.12);
+    color: var(--color-sienna-brown);
+}
+
+.row-tag-popular {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pills);
+    background: rgba(93, 42, 26, 0.15);
+    color: var(--color-sienna-brown);
+    letter-spacing: 0.02em;
+}
+
+.row-desc {
+    font-size: 0.92rem;
+    color: var(--color-slate-gray);
+    line-height: 1.45;
+}
+
+.pricing-row.popular .row-desc {
+    color: var(--color-sienna-brown);
+    opacity: 0.88;
+}
+
+/* Partie Droite : Prix, période et bouton pill */
+.row-right {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    flex-shrink: 0;
+}
+
+.row-price-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.row-price {
     font-family: var(--font-serif);
-    font-size: 3rem;
+    font-size: 2.2rem;
     font-weight: 400;
     line-height: 1;
     color: var(--color-ink-black);
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    margin-bottom: 0.35rem;
+    letter-spacing: -0.02em;
 }
 
-.pricing-card.popular .plan-price {
+.pricing-row.popular .row-price {
     color: var(--color-sienna-brown);
 }
 
-.plan-price span {
-    font-family: var(--font-sans);
-    font-size: 0.92rem;
-    font-weight: 400;
+.row-period {
+    font-size: 0.72rem;
     color: var(--color-slate-gray);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
 }
 
-.pricing-card.popular .plan-price span {
+.pricing-row.popular .row-period {
     color: var(--color-sienna-brown);
     opacity: 0.75;
 }
 
-.plan-period {
-    font-size: 0.84rem;
-    color: var(--color-slate-gray);
-    margin-bottom: 1.75rem;
-}
-
-.pricing-card.popular .plan-period {
-    color: var(--color-sienna-brown);
-    opacity: 0.9;
-}
-
-.plan-features {
-    list-style: none;
-    width: 100%;
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.plan-features li {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    font-size: 0.92rem;
-    color: var(--color-ink-black);
-}
-
-.pricing-card.popular .plan-features li {
-    color: var(--color-sienna-brown);
-}
-
-.plan-features li i {
-    color: var(--color-slate-gray);
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-}
-
-.pricing-card.popular .plan-features li i {
-    color: var(--color-sienna-brown);
-}
-
 .plan-btn {
-    width: 100%;
-    margin-top: auto;
-    padding: 0.85rem 1.25rem;
+    padding: 0.75rem 1.4rem;
+    white-space: nowrap;
+    font-size: 0.92rem;
 }
 
 /* ==========================================================================
@@ -1057,9 +1095,27 @@ textarea::placeholder {
         font-size: 2.6rem;
     }
     
-    .pricing-grid {
-        grid-template-columns: 1fr;
-        max-width: 440px;
+    .pricing-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+        padding: 1.4rem 1.25rem;
+    }
+    
+    .row-right {
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        border-top: 1px solid rgba(23, 25, 28, 0.08);
+        padding-top: 14px;
+    }
+
+    .pricing-row.popular .row-right {
+        border-top-color: rgba(93, 42, 26, 0.15);
+    }
+
+    .row-price-wrap {
+        align-items: flex-start;
     }
     
     .result-dashboard {

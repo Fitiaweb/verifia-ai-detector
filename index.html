@@ -141,60 +141,82 @@
         </section>
 
         <!-- Section Tarifs / Packs Pay-as-you-go -->
+        <!-- Section Tarifs / Packs Pay-as-you-go (Présentation Horizontale Épurée) -->
         <section id="pricing" class="pricing-section">
             <div class="pricing-header">
                 <h2>Des Tarifs Simples, Sans Abonnement Caché</h2>
-                <p>3 tests offerts à tous. Besoin de plus d'analyses ? Choisissez uniquement ce dont vous avez besoin, sans aucun prélèvement mensuel.</p>
+                <p>3 tests offerts à chaque nouvel utilisateur. Besoin d'analyser d'autres documents ? Rechargez uniquement vos crédits sans aucun prélèvement mensuel.</p>
+            </div>
+
+            <!-- Barre de Garanties Communes (anti-répétition de checkmarks) -->
+            <div class="pricing-guarantees">
+                <span class="guarantee-item"><i data-lucide="shield-check"></i> Détection ChatGPT, Claude & Gemini</span>
+                <span class="guarantee-dot">•</span>
+                <span class="guarantee-item"><i data-lucide="clock"></i> Crédits valables à vie</span>
+                <span class="guarantee-dot">•</span>
+                <span class="guarantee-item"><i data-lucide="credit-card"></i> Paiement unique sans engagement</span>
             </div>
             
-            <div class="pricing-grid">
-                <!-- Pack 2 Tests -->
-                <div class="pricing-card">
-                    <span class="plan-name">Pack Découverte</span>
-                    <div class="plan-price">1,00€<span>/ pack</span></div>
-                    <span class="plan-period">2 Tests (0,50€ / test)</span>
-                    <ul class="plan-features">
-                        <li><i data-lucide="check-circle-2"></i> 2 analyses complètes de texte</li>
-                        <li><i data-lucide="check-circle-2"></i> Modèle Neuronal Hybride</li>
-                        <li><i data-lucide="check-circle-2"></i> Aucun abonnement, paiement unique</li>
-                        <li><i data-lucide="check-circle-2"></i> Crédits valables sans limite de durée</li>
-                    </ul>
-                    <button class="btn-primary plan-btn" data-plan="pack_2">
-                        <i data-lucide="zap"></i> Choisir 2 tests - 1,00€
-                    </button>
+            <div class="pricing-rows-container">
+                <!-- Rangée 1 : Pack Découverte -->
+                <div class="pricing-row" data-plan="pack_2">
+                    <div class="row-left">
+                        <div class="row-title-wrap">
+                            <span class="row-name">Pack Découverte</span>
+                            <span class="row-badge">2 analyses • 0,50€/test</span>
+                        </div>
+                        <p class="row-desc">Pour vérifier un travail ponctuel, un article de blog ou un e-mail important.</p>
+                    </div>
+                    <div class="row-right">
+                        <div class="row-price-wrap">
+                            <span class="row-price">1,00 €</span>
+                            <span class="row-period">paiement unique</span>
+                        </div>
+                        <button class="btn-primary plan-btn" data-plan="pack_2">
+                            Choisir 2 tests
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- Pack 5 Tests -->
-                <div class="pricing-card popular">
-                    <span class="plan-name">Pack Populaire</span>
-                    <div class="plan-price">2,00€<span>/ pack</span></div>
-                    <span class="plan-period">5 Tests (0,40€ / test - Économisez 20%)</span>
-                    <ul class="plan-features">
-                        <li><i data-lucide="check-circle-2"></i> 5 analyses complètes de texte</li>
-                        <li><i data-lucide="check-circle-2"></i> Détection ChatGPT, Claude & Gemini</li>
-                        <li><i data-lucide="check-circle-2"></i> Score de burstiness & diversité</li>
-                        <li><i data-lucide="check-circle-2"></i> Paiement unique sans engagement</li>
-                        <li><i data-lucide="check-circle-2"></i> Support réactif</li>
-                    </ul>
-                    <button class="btn-primary plan-btn btn-peach" data-plan="pack_5">
-                        <i data-lucide="star"></i> Choisir 5 tests - 2,00€
-                    </button>
+                <!-- Rangée 2 : Pack Populaire (Mise en valeur Blush Peach) -->
+                <div class="pricing-row popular" data-plan="pack_5">
+                    <div class="row-left">
+                        <div class="row-title-wrap">
+                            <span class="row-name">Pack Populaire</span>
+                            <span class="row-badge highlight">5 analyses • 0,40€/test</span>
+                            <span class="row-tag-popular">⭐ Le plus choisi</span>
+                        </div>
+                        <p class="row-desc">Recommandé pour plusieurs devoirs, candidatures et mémoires académiques. Économisez 20%.</p>
+                    </div>
+                    <div class="row-right">
+                        <div class="row-price-wrap">
+                            <span class="row-price">2,00 €</span>
+                            <span class="row-period">paiement unique</span>
+                        </div>
+                        <button class="btn-primary plan-btn btn-peach" data-plan="pack_5">
+                            Choisir 5 tests
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Pack 10 Tests -->
-                <div class="pricing-card">
-                    <span class="plan-name">Pack Économique</span>
-                    <div class="plan-price">4,00€<span>/ pack</span></div>
-                    <span class="plan-period">10 Tests (0,40€ / test)</span>
-                    <ul class="plan-features">
-                        <li><i data-lucide="check-circle-2"></i> 10 analyses haute précision</li>
-                        <li><i data-lucide="check-circle-2"></i> Idéal pour devoirs & mémoires</li>
-                        <li><i data-lucide="check-circle-2"></i> Pas de limite de mots par test</li>
-                        <li><i data-lucide="check-circle-2"></i> Sans abonnement, utilisable à vie</li>
-                    </ul>
-                    <button class="btn-primary plan-btn" data-plan="pack_10">
-                        <i data-lucide="sparkles"></i> Choisir 10 tests - 4,00€
-                    </button>
+                <!-- Rangée 3 : Pack Économique -->
+                <div class="pricing-row" data-plan="pack_10">
+                    <div class="row-left">
+                        <div class="row-title-wrap">
+                            <span class="row-name">Pack Économique</span>
+                            <span class="row-badge">10 analyses • 0,40€/test</span>
+                        </div>
+                        <p class="row-desc">Volume élevé sans limite de mots par test. Idéal pour thèses, mémoires complets et équipes.</p>
+                    </div>
+                    <div class="row-right">
+                        <div class="row-price-wrap">
+                            <span class="row-price">4,00 €</span>
+                            <span class="row-period">paiement unique</span>
+                        </div>
+                        <button class="btn-primary plan-btn" data-plan="pack_10">
+                            Choisir 10 tests
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
