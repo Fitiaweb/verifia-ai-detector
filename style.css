@@ -1,127 +1,109 @@
 /* ==========================================================================
-   VERIFIA - NATURAL, HUMAN & EDITORIAL DESIGN SYSTEM
-   Éloigné des templates néons sombres génériques ("vibe coding").
-   Esthétique inspirée des grands outils d'écriture modernes (Notion, Linear, Substack).
+   STEEP DESIGN SYSTEM — REFERO STYLES IMPLEMENTATION
+   Style Reference: https://styles.refero.design/style/75fdb89f-ca64-41b3-af36-7a78bd09448e
+   Theme: Light ("serif analytics on warm paper")
    ========================================================================== */
 
 :root {
-    /* Palette Organique et Naturelle (Lait de chaux, Galet, Forêt) */
-    --bg-page: #FAF9F6;
-    --bg-surface: #FFFFFF;
-    --bg-muted: #F5F4F0;
-    --bg-subtle: #EEECE6;
-    
-    --border-color: #E6E4DD;
-    --border-hover: #D3CFCA;
-    --border-focus: #166534;
-    
-    --text-primary: #1C1917;
-    --text-secondary: #57534E;
-    --text-muted: #8A857D;
-    
-    /* Couleur Accent Botanique / Naturelle */
-    --accent-primary: #15803D;       /* Vert Forêt Organique - Authenticité Humaine */
-    --accent-hover: #166534;         /* Vert Profond */
-    --accent-subtle: #DCFCE7;        /* Menthe Sauge */
-    --accent-border: #BBF7D0;
-    
-    /* Statuts d'analyse stylométriques */
-    --success: #15803D;              /* Humain Authentique */
-    --warning: #D97706;              /* Ambre Chaud - Mixte */
-    --danger: #E11D48;               /* Terracotta / Rose Sombre - IA */
-    
-    /* Ombres Naturelles et Diffuses */
-    --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
-    --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.05), 0 1px 3px rgba(28, 25, 23, 0.02);
-    --shadow-lg: 0 12px 32px -8px rgba(28, 25, 23, 0.08), 0 2px 6px rgba(28, 25, 23, 0.02);
-    --shadow-card: 0 2px 8px rgba(28, 25, 23, 0.04), 0 20px 40px -15px rgba(28, 25, 23, 0.05);
-    
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-full: 9999px;
+    /* --- Steep Design Tokens: Colors --- */
+    --color-paper-white: #ffffff;      /* Dominant background tone & canvas */
+    --color-fog-white: #fafafb;        /* Subtle secondary page background / hover */
+    --color-mist-gray: #f2f2f3;        /* Quiet layer beneath paper for nested surfaces */
+    --color-smoke-gray: #a3a6af;       /* Placeholders, disabled labels */
+    --color-ash-gray: #979799;         /* Tertiary labels, category tags */
+    --color-slate-gray: #777b86;       /* Links, muted subtitles, helper text */
+    --color-ink-black: #17191c;        /* Primary text, filled pill buttons, logo */
+
+    /* --- Single Chromatic Surface: Peach Accent --- */
+    --color-blush-peach: #fbe1d1;      /* Warm highlight wash - only chromatic surface */
+    --color-sienna-brown: #5d2a1a;     /* Deep warm brown text & stroke on peach */
+
+    /* --- Semantic & Detection Tokens --- */
+    --color-human: #15803d;            /* Refined forest green (texte humain) */
+    --color-mixed: #b45309;            /* Amber warm (texte mixte) */
+    --color-ai: #5d2a1a;               /* Sienna Brown / Dark rust (texte IA) */
+    --color-danger: #991b1b;           /* Error notices */
+    --success: var(--color-human);
+    --warning: var(--color-mixed);
+    --danger: var(--color-ai);
+
+    /* --- Steep Design Tokens: Geometry & Shapes --- */
+    --radius-cards: 24px;              /* Exact 24px radius on all main content cards */
+    --radius-elevated: 20px;           /* Floating product artifacts / sub-cards */
+    --radius-inputs: 16px;             /* Exact 16px radius on inputs & textareas */
+    --radius-pills: 9999px;            /* Exact 9999px on all buttons and badges */
+    --radius-sm: 10px;
+
+    /* --- Steep Design Tokens: Typography --- */
+    --font-serif: 'Newsreader', 'Signifier', Georgia, 'Times New Roman', serif;
+    --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* --- Steep Design Tokens: Shadows & Hairlines --- */
+    --border-hairline: 1px solid rgba(23, 25, 28, 0.08);
+    --border-subtle: 1px solid rgba(23, 25, 28, 0.12);
+    --shadow-card: 0 1px 3px rgba(23, 25, 28, 0.03), 0 8px 24px -6px rgba(23, 25, 28, 0.04);
+    --shadow-artifact: 0 0 0 1px rgba(23, 25, 28, 0.05), 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    --shadow-modal: 0 0 0 1px rgba(23, 25, 28, 0.06), 0 24px 48px -12px rgba(23, 25, 28, 0.16);
 }
 
+/* ==========================================================================
+   RESET & BASE STYLES
+   ========================================================================== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+}
+
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-page);
-    color: var(--text-primary);
+    background-color: var(--color-paper-white);
+    color: var(--color-ink-black);
+    font-family: var(--font-sans);
+    line-height: 1.5;
     min-height: 100vh;
     overflow-x: hidden;
-    position: relative;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Lueur ambiante subtile et naturelle (Remplacement des boules néons violettes) */
-.background-glow {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 1100px;
-    height: 400px;
-    background: radial-gradient(50% 50% at 50% 0%, rgba(21, 128, 61, 0.04) 0%, rgba(250, 249, 246, 0) 100%);
-    z-index: -1;
-    pointer-events: none;
-}
-
-.background-glow-2 {
-    display: none;
-}
-
-/* Typographie */
-h1, h2, h3 {
-    font-family: 'Outfit', 'Inter', sans-serif;
-    color: var(--text-primary);
-    letter-spacing: -0.5px;
-}
-
-.text-gradient {
-    color: var(--accent-primary);
-    background: none;
-    -webkit-text-fill-color: initial;
-    text-decoration: underline decoration-thickness 3px;
-    text-decoration-color: rgba(21, 128, 61, 0.35);
-    text-underline-offset: 6px;
-}
-
-/* Navigation Épurée & Naturelle */
+/* ==========================================================================
+   NAVIGATION
+   ========================================================================== */
 .navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 1.25rem 6%;
-    border-bottom: 1px solid var(--border-color);
-    background: rgba(250, 249, 246, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: var(--border-hairline);
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 100;
 }
 
 .logo {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    font-size: 1.35rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-black);
+    text-decoration: none;
+    cursor: pointer;
 }
 
 .logo-icon {
-    color: var(--accent-primary);
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
+    color: var(--color-ink-black);
 }
 
 .nav-links {
@@ -131,105 +113,142 @@ h1, h2, h3 {
 }
 
 .nav-links a {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     text-decoration: none;
+    font-size: 0.94rem;
     font-weight: 500;
-    font-size: 0.95rem;
-    transition: color 0.2s ease;
+    transition: color 0.18s ease;
 }
 
 .nav-links a:hover {
-    color: var(--text-primary);
+    color: var(--color-ink-black);
 }
 
-.btn-login {
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    padding: 0.5rem 1.25rem;
-    border-radius: var(--radius-full);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-login:hover {
-    background: var(--bg-muted);
-    border-color: var(--border-hover);
-}
-
-/* Badge de Crédits Naturel */
+/* Credits Pill in Nav */
 .credits-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--accent-subtle);
-    border: 1px solid var(--accent-border);
-    color: #14532D;
+    background: var(--color-mist-gray);
+    border: var(--border-hairline);
+    color: var(--color-ink-black);
     font-size: 0.82rem;
-    font-weight: 600;
-    padding: 5px 12px;
-    border-radius: var(--radius-full);
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: var(--radius-pills);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .credits-pill:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(21, 128, 61, 0.15);
+    background: #e8e8ea;
 }
 
 .credits-pill i {
     width: 14px;
     height: 14px;
-    color: var(--accent-primary);
+    color: var(--color-sienna-brown);
 }
 
 .credits-pill.zero {
-    background: #FFE4E6;
-    border-color: #FECDD3;
-    color: #9F1239;
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: var(--color-danger);
 }
 
 .credits-pill.zero i {
-    color: var(--danger);
+    color: var(--color-danger);
 }
 
-/* Conteneur Principal */
+/* Nav Login Pill (Ghost Pill Button) */
+.btn-login {
+    background: transparent;
+    color: var(--color-ink-black) !important;
+    padding: 7px 18px;
+    border-radius: var(--radius-pills);
+    border: 1px solid rgba(23, 25, 28, 0.2);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-login:hover {
+    background: var(--color-mist-gray);
+    border-color: var(--color-ink-black);
+}
+
+/* ==========================================================================
+   CONTAINER & HERO SECTION
+   ========================================================================== */
 .container {
-    max-width: 960px;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 4rem 1.5rem;
+    padding: 4.5rem 1.5rem 6rem;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* Section En-tête / Hero */
 .hero {
     text-align: center;
-    margin-bottom: 3.5rem;
+    margin-bottom: 3rem;
+    max-width: 780px;
 }
 
+.hero-eyebrow {
+    margin-bottom: 1.25rem;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-mist-gray);
+    border: var(--border-hairline);
+    color: var(--color-slate-gray);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: var(--radius-pills);
+    letter-spacing: 0.01em;
+}
+
+/* Steep Signature Serif Headline: Weight strictly 400, negative tracking */
 .hero h1 {
-    font-size: 3.2rem;
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -1.2px;
-    margin-bottom: 1rem;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 3.5rem;
+    line-height: 1.16;
+    letter-spacing: -0.025em;
+    color: var(--color-ink-black);
+    margin-bottom: 1.2rem;
+}
+
+.hero-serif-italic {
+    font-style: italic;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    color: var(--color-ink-black);
+    padding: 0 4px;
 }
 
 .hero p {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 1.15rem;
+    line-height: 1.6;
     max-width: 620px;
     margin: 0 auto;
-    line-height: 1.6;
 }
 
-/* Section Détecteur - Allure d'Atelier d'Écriture Naturel */
+.hero p strong {
+    color: var(--color-ink-black);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   DETECTOR SECTION (TEXTAREA ARTIFACT)
+   ========================================================================== */
 .detector-section {
     width: 100%;
     display: flex;
@@ -238,17 +257,17 @@ h1, h2, h3 {
 }
 
 .input-container {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
+    background: var(--color-paper-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
+    padding: 1.5rem;
     box-shadow: var(--shadow-card);
-    transition: all 0.25s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-container:focus-within {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.08), var(--shadow-card);
+    border-color: rgba(23, 25, 28, 0.25);
+    box-shadow: 0 0 0 4px rgba(23, 25, 28, 0.04), var(--shadow-card);
 }
 
 textarea {
@@ -256,129 +275,176 @@ textarea {
     min-height: 250px;
     background: transparent;
     border: none;
-    color: var(--text-primary);
-    font-family: inherit;
+    color: var(--color-ink-black);
+    font-family: var(--font-sans);
     font-size: 1.05rem;
-    line-height: 1.7;
+    line-height: 1.65;
     resize: vertical;
     outline: none;
-    padding: 0.75rem;
+    padding: 0.5rem 0.5rem 1rem;
 }
 
 textarea::placeholder {
-    color: var(--text-muted);
+    color: var(--color-smoke-gray);
 }
 
 .input-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0.75rem 0.25rem;
-    border-top: 1px solid var(--border-color);
+    padding: 1rem 0.5rem 0.25rem;
+    border-top: var(--border-hairline);
+}
+
+.input-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 #wordCount {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 0.88rem;
     font-weight: 500;
 }
 
-/* Boutons Naturels & Tactiles */
+.input-credits-badge {
+    font-size: 0.82rem;
+    color: var(--color-slate-gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.credits-badge-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--color-sienna-brown);
+}
+
+/* ==========================================================================
+   BUTTONS (STEEP SIGNATURE PILL BUTTONS)
+   ========================================================================== */
 .btn-primary {
-    background: var(--accent-primary);
-    color: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: var(--color-ink-black);
+    color: var(--color-paper-white);
+    border: 1px solid var(--color-ink-black);
     padding: 0.75rem 1.6rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.95rem;
+    border-radius: var(--radius-pills);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.94rem;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(21, 128, 61, 0.2);
     transition: all 0.2s ease;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+    background: #2b2e33;
+    border-color: #2b2e33;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(21, 128, 61, 0.28);
 }
 
 .btn-primary:disabled {
-    background: var(--bg-subtle);
-    color: var(--text-muted);
-    border-color: var(--border-color);
-    box-shadow: none;
+    background: var(--color-mist-gray);
+    color: var(--color-smoke-gray);
+    border-color: var(--color-mist-gray);
     cursor: not-allowed;
+    transform: none;
 }
 
-.btn-secondary {
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+.btn-secondary, .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-black);
+    border: 1px solid rgba(23, 25, 28, 0.2);
     padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.95rem;
+    border-radius: var(--radius-pills);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.94rem;
     cursor: pointer;
-    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     transition: all 0.2s ease;
-    box-shadow: var(--shadow-sm);
 }
 
-.btn-secondary:hover {
-    background: var(--bg-muted);
-    border-color: var(--border-hover);
+.btn-secondary:hover, .btn-ghost:hover {
+    background: var(--color-mist-gray);
+    border-color: var(--color-ink-black);
 }
 
-/* Chargement Épuré */
+/* Peach Accent Button */
+.btn-peach {
+    background: var(--color-sienna-brown) !important;
+    color: var(--color-blush-peach) !important;
+    border: 1px solid var(--color-sienna-brown) !important;
+}
+
+.btn-peach:hover:not(:disabled) {
+    background: #461f13 !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   LOADING STATE
+   ========================================================================== */
 #loadingState {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding: 3rem 1rem;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    gap: 1.25rem;
+    padding: 3.5rem 1rem;
+    background: var(--color-paper-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
     box-shadow: var(--shadow-card);
 }
 
+#loadingState p {
+    color: var(--color-slate-gray);
+    font-size: 0.95rem;
+}
+
 .loader {
-    width: 48px;
-    height: 48px;
-    border: 3px solid var(--bg-subtle);
+    width: 42px;
+    height: 42px;
+    border: 2.5px solid var(--color-mist-gray);
     border-radius: 50%;
-    border-top-color: var(--accent-primary);
-    animation: spin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+    border-top-color: var(--color-ink-black);
+    animation: spin 0.85s linear infinite;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-/* Tableau de Bord des Résultats - Certificat Clair et Rassurant */
+/* ==========================================================================
+   RESULT DASHBOARD (FLOATING PRODUCT ARTIFACT)
+   ========================================================================== */
 .result-dashboard {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
-    animation: slideUp 0.35s ease;
     width: 100%;
+    animation: slideUp 0.35s ease;
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 .score-card, .stats-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 2.25rem;
-    box-shadow: var(--shadow-card);
+    background: var(--color-paper-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
+    padding: 2.25rem 2rem;
+    box-shadow: var(--shadow-artifact);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -386,18 +452,18 @@ textarea::placeholder {
 }
 
 .score-card h2 {
-    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    color: var(--color-slate-gray);
     margin-bottom: 1.5rem;
 }
 
-/* Jauge Circulaire Stylée */
 .score-circle {
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
     margin-bottom: 1rem;
 }
 
@@ -405,40 +471,43 @@ textarea::placeholder {
     display: block;
     margin: 0 auto;
     max-width: 100%;
-    max-height: 250px;
 }
 
 .circle-bg {
     fill: none;
-    stroke: var(--bg-subtle);
-    stroke-width: 2.8;
+    stroke: var(--color-mist-gray);
+    stroke-width: 2.6;
 }
 
 .circle {
     fill: none;
-    stroke-width: 2.8;
+    stroke-width: 2.6;
     stroke-linecap: round;
     transition: stroke-dasharray 1.4s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease;
 }
 
 .percentage {
-    fill: var(--text-primary);
-    font-family: inherit;
-    font-weight: 800;
-    font-size: 0.52rem;
+    fill: var(--color-ink-black);
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 0.55rem;
     text-anchor: middle;
 }
 
 .score-label {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-top: 0.25rem;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--color-ink-black);
+    letter-spacing: -0.01em;
+    margin-top: 0.35rem;
+    text-align: center;
 }
 
-/* Cartes de Statistiques */
+/* Stats Card */
 .stats-card {
-    align-items: flex-start;
+    align-items: stretch;
+    justify-content: space-between;
     gap: 1.25rem;
 }
 
@@ -446,17 +515,16 @@ textarea::placeholder {
     display: flex;
     align-items: center;
     gap: 1rem;
-    width: 100%;
     padding: 1rem 1.25rem;
-    background: var(--bg-muted);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    background: var(--color-fog-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-inputs);
 }
 
 .stat-item i {
-    color: var(--accent-primary);
-    width: 22px;
-    height: 22px;
+    color: var(--color-ink-black);
+    width: 20px;
+    height: 20px;
 }
 
 .stat-info {
@@ -465,22 +533,27 @@ textarea::placeholder {
 }
 
 .stat-value {
-    font-weight: 700;
+    font-family: var(--font-sans);
+    font-weight: 600;
     font-size: 1.15rem;
-    color: var(--text-primary);
+    color: var(--color-ink-black);
 }
 
 .stat-name {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 0.85rem;
 }
 
+#resetBtn {
+    width: 100%;
+}
+
 /* ==========================================================================
-   SECTION TARIFS - STYLE MINIMALISTE ET TRANSPARENT
+   PRICING SECTION (STEEP MINIMALIST EDITORIAL & PEACH ACCENT CARD)
    ========================================================================== */
 .pricing-section {
     width: 100%;
-    margin: 5rem 0 3rem;
+    margin: 5.5rem 0 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -489,98 +562,127 @@ textarea::placeholder {
 
 .pricing-header {
     text-align: center;
+    max-width: 640px;
 }
 
 .pricing-header h2 {
-    font-size: 2.4rem;
-    font-weight: 800;
-    letter-spacing: -0.8px;
-    margin-bottom: 0.5rem;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 2.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-black);
+    margin-bottom: 0.75rem;
 }
 
 .pricing-header p {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    max-width: 580px;
-    margin: 0 auto;
+    color: var(--color-slate-gray);
+    font-size: 1.05rem;
     line-height: 1.6;
 }
 
 .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.75rem;
     width: 100%;
-    max-width: 1000px;
+    max-width: 1020px;
 }
 
+/* Base Pricing Card (24px radius, hairline border) */
 .pricing-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 2.5rem 2rem;
+    background: var(--color-paper-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
+    padding: 2.25rem 1.75rem;
     box-shadow: var(--shadow-card);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     position: relative;
-    transition: all 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .pricing-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--border-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 20px rgba(23, 25, 28, 0.06);
 }
 
-/* Carte mise en avant (Pack Populaire) */
+/* --- THE SIGNATURE PEACH ACCENT CARD (STEEP SPECIFICATION) ---
+   Single warm peach highlight surface (#fbe1d1) paired with Sienna Brown (#5d2a1a).
+   Used at most once per page for editorial emphasis. */
 .pricing-card.popular {
-    border: 2px solid var(--accent-primary);
-    background: #FFFFFF;
-    box-shadow: 0 10px 30px rgba(21, 128, 61, 0.08);
+    background: var(--color-blush-peach);
+    border: 1px solid rgba(93, 42, 26, 0.15);
+    box-shadow: 0 8px 30px rgba(93, 42, 26, 0.08);
 }
 
 .pricing-card.popular::after {
-    content: '⭐ LE PLUS CHOISI';
+    content: '⭐ LE PLUS POPULAIRE';
     position: absolute;
     top: 18px;
     right: 18px;
-    background: var(--accent-subtle);
-    color: var(--accent-primary);
-    font-size: 0.7rem;
-    font-weight: 800;
+    background: rgba(93, 42, 26, 0.1);
+    color: var(--color-sienna-brown);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     padding: 4px 10px;
-    border-radius: var(--radius-full);
-    letter-spacing: 0.5px;
+    border-radius: var(--radius-pills);
+    border: 1px solid rgba(93, 42, 26, 0.15);
 }
 
 .plan-name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-slate-gray);
     margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pricing-card.popular .plan-name {
+    color: var(--color-sienna-brown);
+    opacity: 0.85;
 }
 
 .plan-price {
+    font-family: var(--font-serif);
     font-size: 3rem;
-    font-weight: 800;
-    color: var(--text-primary);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-ink-black);
     display: flex;
     align-items: baseline;
     gap: 4px;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+
+.pricing-card.popular .plan-price {
+    color: var(--color-sienna-brown);
 }
 
 .plan-price span {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 400;
+    color: var(--color-slate-gray);
+}
+
+.pricing-card.popular .plan-price span {
+    color: var(--color-sienna-brown);
+    opacity: 0.75;
 }
 
 .plan-period {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    font-size: 0.84rem;
+    color: var(--color-slate-gray);
     margin-bottom: 1.75rem;
+}
+
+.pricing-card.popular .plan-period {
+    color: var(--color-sienna-brown);
+    opacity: 0.9;
 }
 
 .plan-features {
@@ -597,32 +699,37 @@ textarea::placeholder {
     align-items: center;
     gap: 0.65rem;
     font-size: 0.92rem;
-    color: var(--text-secondary);
+    color: var(--color-ink-black);
+}
+
+.pricing-card.popular .plan-features li {
+    color: var(--color-sienna-brown);
 }
 
 .plan-features li i {
-    color: var(--accent-primary);
+    color: var(--color-slate-gray);
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
+}
+
+.pricing-card.popular .plan-features li i {
+    color: var(--color-sienna-brown);
 }
 
 .plan-btn {
     width: 100%;
     margin-top: auto;
     padding: 0.85rem 1.25rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.95rem;
-    justify-content: center;
 }
 
 /* ==========================================================================
-   SECTION FAQ - SEO & CONFIANCE
+   FAQ SECTION (EDITORIAL RESTRAINT)
    ========================================================================== */
 .faq-section {
     width: 100%;
-    max-width: 860px;
-    margin: 4rem auto 2rem;
+    max-width: 840px;
+    margin: 4.5rem auto 2rem;
     padding: 0 1rem;
 }
 
@@ -632,13 +739,16 @@ textarea::placeholder {
 }
 
 .faq-header h2 {
-    font-size: 2.2rem;
-    font-weight: 800;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 2.3rem;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-black);
     margin-bottom: 0.5rem;
 }
 
 .faq-header p {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 1.05rem;
 }
 
@@ -649,44 +759,50 @@ textarea::placeholder {
 }
 
 .faq-item {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    background: var(--color-fog-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
     padding: 1.5rem 1.75rem;
-    box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
 }
 
 .faq-item:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
+    background: var(--color-paper-white);
+    border-color: rgba(23, 25, 28, 0.15);
+    box-shadow: 0 2px 12px rgba(23, 25, 28, 0.03);
 }
 
 .faq-question {
     font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.65rem;
+    font-weight: 600;
+    color: var(--color-ink-black);
+    margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
 .faq-question i {
-    color: var(--accent-primary);
-    width: 20px;
-    height: 20px;
+    color: var(--color-slate-gray);
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .faq-answer {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 0.95rem;
     line-height: 1.6;
     padding-left: 1.95rem;
 }
 
+.faq-answer strong {
+    color: var(--color-ink-black);
+    font-weight: 600;
+}
+
 /* ==========================================================================
-   MODALES ET FORMULAIRES NATURELS
+   MODALS & DIALOGS (STEEP AIRY PAPER OVERLAYS)
    ========================================================================== */
 .modal-overlay {
     position: fixed;
@@ -694,9 +810,9 @@ textarea::placeholder {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(28, 25, 23, 0.45);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(23, 25, 28, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -705,19 +821,19 @@ textarea::placeholder {
 }
 
 .modal-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-cards);
     padding: 2.25rem;
     width: 100%;
     max-width: 460px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-    animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-modal);
+    animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes modalPop {
-    from { opacity: 0; transform: scale(0.96); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal-header {
@@ -728,61 +844,71 @@ textarea::placeholder {
 }
 
 .modal-header h2 {
-    font-size: 1.4rem;
-    font-weight: 800;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 1.55rem;
+    letter-spacing: -0.015em;
+    color: var(--color-ink-black);
+}
+
+.paywall-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-sienna-brown) !important;
 }
 
 .close-modal {
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--color-slate-gray);
     cursor: pointer;
     padding: 4px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .close-modal:hover {
-    color: var(--text-primary);
-    background: var(--bg-muted);
+    color: var(--color-ink-black);
+    background: var(--color-mist-gray);
 }
 
 .modal-card p {
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     font-size: 0.92rem;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .modal-input {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: var(--bg-muted);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    background: var(--color-mist-gray);
+    border: var(--border-hairline);
+    border-radius: var(--radius-inputs);
+    color: var(--color-ink-black);
     font-size: 0.95rem;
-    font-family: inherit;
+    font-family: var(--font-sans);
     outline: none;
     transition: all 0.2s ease;
 }
 
 .modal-input:focus {
-    background: #FFFFFF;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+    background: var(--color-paper-white);
+    border-color: rgba(23, 25, 28, 0.3);
+    box-shadow: 0 0 0 3px rgba(23, 25, 28, 0.05);
 }
 
 .error-text {
-    color: var(--danger);
+    color: var(--color-danger);
     font-size: 0.85rem;
     margin-top: 0.5rem;
     font-weight: 500;
 }
 
-/* Sélection des Packs dans la modale Paywall */
+/* Paywall Modal Packs Selection */
 .paywall-packs-grid {
     display: flex;
     flex-direction: column;
@@ -795,29 +921,31 @@ textarea::placeholder {
     align-items: center;
     justify-content: space-between;
     padding: 14px 18px;
-    background: var(--bg-muted);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
+    background: var(--color-mist-gray);
+    border: var(--border-hairline);
+    border-radius: var(--radius-inputs);
+    color: var(--color-ink-black);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .pack-choice-btn:hover {
-    background: #FFFFFF;
-    border-color: var(--accent-primary);
-    box-shadow: var(--shadow-sm);
+    background: var(--color-paper-white);
+    border-color: rgba(23, 25, 28, 0.2);
+    box-shadow: 0 2px 8px rgba(23, 25, 28, 0.04);
     transform: translateY(-1px);
 }
 
+/* Peach Accent for Featured Pack in Paywall */
 .pack-choice-btn.featured {
-    background: var(--accent-subtle);
-    border-color: var(--accent-border);
+    background: var(--color-blush-peach);
+    border: 1px solid rgba(93, 42, 26, 0.2);
+    color: var(--color-sienna-brown);
 }
 
 .pack-choice-btn.featured:hover {
-    background: #DCFCE7;
-    border-color: var(--accent-primary);
+    background: #f7d5c2;
+    border-color: var(--color-sienna-brown);
 }
 
 .pack-choice-info {
@@ -826,42 +954,143 @@ textarea::placeholder {
 }
 
 .pack-choice-title {
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.98rem;
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: var(--text-primary);
+    gap: 8px;
+    color: inherit;
+}
+
+.pack-choice-title i {
+    width: 16px;
+    height: 16px;
+    color: inherit;
+}
+
+.pack-pill-tag {
+    font-size: 0.65rem;
+    background: rgba(93, 42, 26, 0.12);
+    color: var(--color-sienna-brown);
+    padding: 2px 7px;
+    border-radius: var(--radius-pills);
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 .pack-choice-desc {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: var(--color-slate-gray);
     margin-top: 2px;
 }
 
-.pack-choice-price {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--accent-primary);
+.pack-choice-btn.featured .pack-choice-desc {
+    color: var(--color-sienna-brown);
+    opacity: 0.85;
 }
 
+.pack-choice-price {
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--color-ink-black);
+}
+
+.pack-choice-btn.featured .pack-choice-price {
+    color: var(--color-sienna-brown);
+}
+
+/* Profile Modal Details */
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 1.5rem 0;
+}
+
+.profile-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--color-fog-white);
+    border: var(--border-hairline);
+    border-radius: var(--radius-inputs);
+}
+
+.profile-field i {
+    color: var(--color-slate-gray);
+    width: 18px;
+    height: 18px;
+}
+
+.profile-field-label {
+    font-size: 0.78rem;
+    color: var(--color-slate-gray);
+}
+
+.profile-field-value {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--color-ink-black);
+}
+
+.credits-field i {
+    color: var(--color-sienna-brown);
+}
+
+.credits-count {
+    color: var(--color-sienna-brown);
+    font-weight: 700;
+}
+
+/* Utilities */
 .hidden {
     display: none !important;
 }
 
-/* Adaptabilité Mobile */
-@media (max-width: 768px) {
+/* ==========================================================================
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   ========================================================================== */
+@media (max-width: 860px) {
     .hero h1 {
-        font-size: 2.2rem;
+        font-size: 2.6rem;
     }
+    
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+    }
+    
     .result-dashboard {
         grid-template-columns: 1fr;
     }
-    .pricing-grid {
-        grid-template-columns: 1fr;
-    }
+    
     .navbar {
         padding: 1rem 4%;
+    }
+}
+
+@media (max-width: 520px) {
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
+    
+    .input-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .input-meta {
+        justify-content: space-between;
+    }
+    
+    .btn-primary {
+        width: 100%;
     }
 }
