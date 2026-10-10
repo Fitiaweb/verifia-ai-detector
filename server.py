@@ -19,7 +19,7 @@ from pydantic import BaseModel
 import stripe
 
 # Configuration Stripe
-stripe_key = os.getenv("STRIPE_API_KEY", "")
+stripe_key = os.getenv("STRIPE_API_KEY", "").strip()
 stripe.api_key = stripe_key if stripe_key else None
 
 app = FastAPI(title="VerifIA Backend - Détecteur IA SaaS")
@@ -537,36 +537,46 @@ async def create_payment_session(req: PaymentSessionRequest, request: Request, A
     if "localhost" not in origin and "127.0.0.1" not in origin:
         origin = origin.replace("http://", "https://")
 
-    # Mode Stripe Réel si la clé est fournie
-    if stripe.api_key and stripe.api_key != "mock":
-        try:
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'eur',
-                        'product_data': {
-                            'name': f"VerifIA - {plan_info['name']}",
-                        },
-                        'unit_amount': plan_info['price_cents'],
+    # Recharger stripe.api_key au cas où elle a été injectée dans l'environnement
+    current_stripe_key = os.getenv("STRIPE_API_KEY", "").strip()
+    if current_stripe_key:
+        stripe.api_key = current_stripe_key
+
+    # Sécurité absolue : Empêcher tout achat si la vraie clé Stripe n'est pas configurée
+    if not stripe.api_key or stripe.api_key == "mock":
+        raise HTTPException(
+            status_code=503,
+            detail="Le service de paiement Stripe n'est pas encore configuré. Veuillez ajouter votre clé secrète STRIPE_API_KEY (sk_live_... ou sk_test_...) dans les variables d'environnement sur Render."
+        )
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'eur',
+                    'product_data': {
+                        'name': f"VerifIA - {plan_info['name']}",
                     },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                customer_email=email,
-                success_url=f"{origin}/api/payments/confirm?email={email}&plan={plan}&session_id={{CHECKOUT_SESSION_ID}}&order_id={order_id}",
-                cancel_url=f"{origin}/#pricing",
-            )
-            return {"checkout_url": session.url}
-        except Exception as e:
-            print(f"[STRIPE ERROR] {e}. Utilisation du mode simulation.")
-            
-    # Mode Simulation interactive (idéal pour tester sans carte réelle)
-    sim_url = f"/checkout-simulation.html?plan={plan}&email={email}&session_id={order_id}"
-    return {"checkout_url": sim_url}
+                    'unit_amount': plan_info['price_cents'],
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            customer_email=email,
+            success_url=f"{origin}/api/payments/confirm?email={email}&plan={plan}&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin}/#pricing",
+        )
+        return {"checkout_url": session.url}
+    except Exception as e:
+        print(f"[STRIPE ERROR] {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erreur lors de la création de la session Stripe : {str(e)}"
+        )
 
 @app.get("/api/payments/confirm")
-async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None, session_id: Optional[str] = None):
+async def confirm_payment(email: str, plan: str, session_id: Optional[str] = None):
     email = email.lower().strip()
     plan = plan.lower().strip()
     
@@ -576,22 +586,50 @@ async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None,
     plan_info = PACK_PLANS[plan]
     tests_to_add = plan_info["tests"]
     
-    # Vérification Stripe si applicable
-    if stripe.api_key and stripe.api_key != "mock" and session_id:
-        try:
-            session = stripe.checkout.Session.retrieve(session_id)
-            if session.payment_status != "paid":
-                raise HTTPException(status_code=400, detail="Paiement Stripe non finalisé.")
-        except Exception as e:
-            print(f"[STRIPE VERIFY WARNING] {e}")
-            
+    current_stripe_key = os.getenv("STRIPE_API_KEY", "").strip()
+    if current_stripe_key:
+        stripe.api_key = current_stripe_key
+
+    # Sécurité : Vérification OBLIGATOIRE et STRICTE auprès des serveurs Stripe
+    if not stripe.api_key or stripe.api_key == "mock":
+        raise HTTPException(status_code=503, detail="Vérification impossible : clé Stripe non configurée.")
+
+    if not session_id or not session_id.startswith("cs_"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Identifiant de session Stripe invalide ou manquant. Aucun crédit n'a été attribué."
+        )
+        
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status != "paid":
+            raise HTTPException(
+                status_code=402, 
+                detail="Le paiement n'a pas été validé par Stripe ou a été refusé par votre banque."
+            )
+    except Exception as e:
+        print(f"[STRIPE VERIFY ERROR] {e}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Impossible de valider ce paiement auprès de Stripe : {str(e)}"
+        )
+        
     conn = sqlite3.connect("app.db")
     c = conn.cursor()
     
+    # Table anti-double crédit (évite de réattribuer des crédits si l'URL de succès est rechargée)
+    c.execute("CREATE TABLE IF NOT EXISTS processed_sessions (session_id TEXT PRIMARY KEY, created_at TEXT)")
+    c.execute("SELECT session_id FROM processed_sessions WHERE session_id=?", (session_id,))
+    if c.fetchone():
+        conn.close()
+        return RedirectResponse(url=f"/payment-success.html?plan={plan}&tests={tests_to_add}&email={email}")
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO processed_sessions (session_id, created_at) VALUES (?, ?)", (session_id, now_str))
+
     # Vérifier si l'utilisateur existe déjà
     c.execute("SELECT credits FROM users WHERE email=?", (email,))
     row = c.fetchone()
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     if row:
         new_credits = (row[0] or 0) + tests_to_add
@@ -606,7 +644,7 @@ async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None,
         
     c.execute(
         "INSERT INTO payments (order_id, email, plan, tests_added, amount_cents, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        (order_id or "sim", email, plan, tests_to_add, plan_info["price_cents"], now_str)
+        (session_id, email, plan, tests_to_add, plan_info["price_cents"], now_str)
     )
     conn.commit()
     conn.close()
@@ -619,7 +657,7 @@ async def confirm_payment(email: str, plan: str, order_id: Optional[str] = None,
 
 @app.get("/checkout-simulation.html")
 async def read_checkout_simulation():
-    return FileResponse("checkout-simulation.html")
+    raise HTTPException(status_code=403, detail="Le mode simulation est désactivé pour des raisons de sécurité. Tous les paiements passent par Stripe Checkout officiel.")
 
 @app.get("/payment-success.html")
 async def read_payment_success():
