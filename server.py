@@ -551,7 +551,6 @@ async def create_payment_session(req: PaymentSessionRequest, request: Request, A
 
     try:
         session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
             line_items=[{
                 'price_data': {
                     'currency': 'eur',
