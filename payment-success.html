@@ -11,14 +11,14 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --bg-color: #05050A;
-            --card-bg: rgba(20, 20, 28, 0.6);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --text-primary: #ffffff;
-            --text-secondary: #9ca3af;
-            --accent-primary: #ffd700;
-            --accent-secondary: #ffa500;
-            --success: #10b981;
+            --bg-color: #FAF9F6;
+            --card-bg: #FFFFFF;
+            --border-color: #E6E4DD;
+            --text-primary: #1C1917;
+            --text-secondary: #57534E;
+            --accent-primary: #15803D;
+            --accent-subtle: #DCFCE7;
+            --success: #15803D;
         }
 
         * {
@@ -28,139 +28,96 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .background-glow {
-            position: absolute;
-            top: -20%;
-            left: -10%;
-            width: 60%;
-            height: 60%;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(5, 5, 10, 0) 70%);
-            z-index: -1;
-            filter: blur(60px);
-        }
-
-        .background-glow-2 {
-            position: absolute;
-            bottom: -20%;
-            right: -10%;
-            width: 50%;
-            height: 50%;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(5, 5, 10, 0) 70%);
-            z-index: -1;
-            filter: blur(60px);
+            padding: 20px;
         }
 
         .success-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 28px;
-            padding: 3.5rem 2.5rem;
-            width: 90%;
+            border-radius: 20px;
+            padding: 3rem 2.25rem;
+            width: 100%;
             max-width: 480px;
             text-align: center;
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            animation: cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
+            box-shadow: 0 4px 20px rgba(28, 25, 23, 0.06);
+            animation: cardPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes cardPop {
-            0% { transform: scale(0.85); opacity: 0; }
+            0% { transform: scale(0.95); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
         .success-icon-wrap {
-            width: 96px;
-            height: 96px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            width: 72px;
+            height: 72px;
+            background: var(--accent-subtle);
+            border: 1px solid #BBF7D0;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 2rem;
+            margin: 0 auto 1.5rem;
             color: var(--success);
-            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
-            animation: pulseSuccess 2s infinite;
-        }
-
-        @keyframes pulseSuccess {
-            0% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
-            50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.4); }
-            100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
         }
 
         h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2.2rem;
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 1.85rem;
             font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff, #e5e7eb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
         }
 
         .badge-premium-glow {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: linear-gradient(135deg, #ffd700, #ffa500);
-            color: #05050a;
-            font-weight: 800;
+            background: var(--accent-subtle);
+            color: var(--accent-primary);
+            font-weight: 700;
             font-size: 0.8rem;
-            padding: 5px 14px;
+            padding: 4px 12px;
             border-radius: 9999px;
-            margin-bottom: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-            animation: floatBadge 3s ease-in-out infinite;
-        }
-
-        @keyframes floatBadge {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-4px); }
-            100% { transform: translateY(0px); }
+            margin-bottom: 1.25rem;
+            letter-spacing: 0.3px;
         }
 
         p {
             color: var(--text-secondary);
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.6;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
         }
 
         .btn-continue {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background: linear-gradient(to right, #8b5cf6, #3b82f6);
+            background: var(--accent-primary);
             color: white;
             text-decoration: none;
-            padding: 1rem 2rem;
+            padding: 0.85rem 1.75rem;
             border-radius: 12px;
             font-weight: 600;
-            font-size: 1.05rem;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            font-size: 0.95rem;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);
             transition: all 0.2s ease;
         }
 
         .btn-continue:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+            background: #166534;
+            transform: translateY(-1px);
         }
     </style>
 </head>
